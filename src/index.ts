@@ -18,7 +18,8 @@ import {
 	tryOnBeforeUnmount,
 } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { type Repository, Hash } from '@volverjs/data'
+import { Hash } from '@volverjs/data/hash'
+import { type Repository } from '@volverjs/data'
 import type {
 	ParamMap,
 	StoreRepositoryHash,
@@ -38,8 +39,8 @@ export type StoreRepositoryStatus =
 	(typeof StoreRepositoryStatus)[keyof typeof StoreRepositoryStatus]
 
 export const defineStoreRepository = <Type>(
-	name: string,
 	repository: Repository<Type>,
+	name: string,
 	options: {
 		keyProperty?: keyof Type
 		defaultPersistence?: number

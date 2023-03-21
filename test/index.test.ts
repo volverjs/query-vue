@@ -6,7 +6,7 @@ import { defineStoreRepository } from '../src/index'
 import { RepositoryHttp, HttpClient } from '@volverjs/data'
 import { ref, nextTick, computed } from 'vue'
 
-const fetchMocker = createFetchMock(vi)
+const fetchMock = createFetchMock(vi)
 const httpClient = new HttpClient({
 	prefixUrl: 'https://myapi.com/v1',
 })
@@ -28,15 +28,15 @@ describe('Read', () => {
 
 	// Reset mocks for each test
 	beforeEach(() => {
-		fetchMocker.enableMocks()
-		fetchMocker.resetMocks()
+		fetchMock.enableMocks()
+		fetchMock.resetMocks()
 	})
 
 	it('Read from a parameters map', async () => {
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read',
 			repositoryHttp,
+			'read',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item } = read({
@@ -52,10 +52,10 @@ describe('Read', () => {
 	})
 
 	it('Read cached values and force refetch', async () => {
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read',
 			repositoryHttp,
+			'read',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item, refetch } = read({
@@ -76,10 +76,10 @@ describe('Read', () => {
 	})
 
 	it('Read values without persistence', async () => {
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read',
 			repositoryHttp,
+			'read',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item } = read(
@@ -98,10 +98,10 @@ describe('Read', () => {
 	})
 
 	it('Read from a parameters map and query name', async () => {
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-query-name',
 			repositoryHttp,
+			'read-query-name',
 		)
 		const QUERY_NAME = 'my-query'
 		const { read, getQueryByName, getItemByKey } = useStoreReposotory()
@@ -121,10 +121,10 @@ describe('Read', () => {
 	})
 
 	it('Read from a parameters map and directory', async () => {
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-directory',
 			repositoryHttp,
+			'read-directory',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data } = read(
@@ -143,10 +143,10 @@ describe('Read', () => {
 	})
 
 	it('Read from a parameters map not immediate', async () => {
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-not-immediate',
 			repositoryHttp,
+			'read-not-immediate',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, refetch, data } = read(
@@ -164,12 +164,12 @@ describe('Read', () => {
 	})
 
 	it('Read from a parameters ref', async () => {
-		fetchMocker.mockResponseOnce(async () => {
+		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-ref',
 			repositoryHttp,
+			'read-ref',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: '12345' })
@@ -181,7 +181,7 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		// change params
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '54321' }]))
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '54321' }]))
 		params.value.id = '54321'
 		await nextTick()
 		expect(isLoading.value).toBe(true)
@@ -195,12 +195,12 @@ describe('Read', () => {
 	})
 
 	it('Read from a parameters ref and stop', async () => {
-		fetchMocker.mockResponseOnce(async () => {
+		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-ref-stop',
 			repositoryHttp,
+			'read-ref-stop',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: '12345' })
@@ -219,12 +219,12 @@ describe('Read', () => {
 	})
 
 	it('Refetch', async () => {
-		fetchMocker.mockResponseOnce(async () => {
+		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-refetch',
 			repositoryHttp,
+			'read-refetch',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item, refetch } = read({
@@ -238,7 +238,7 @@ describe('Read', () => {
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
 		// change params
-		fetchMocker.mockResponseOnce(JSON.stringify([{ id: '54321' }]))
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '54321' }]))
 		refetch({ id: '54321' })
 		await nextTick()
 		expect(isLoading.value).toBe(true)
@@ -251,12 +251,12 @@ describe('Read', () => {
 	})
 
 	it('When with params map', async () => {
-		fetchMocker.mockResponseOnce(async () => {
+		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-when',
 			repositoryHttp,
+			'read-when',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const when = ref(false)
@@ -280,12 +280,12 @@ describe('Read', () => {
 	})
 
 	it('When with computed', async () => {
-		fetchMocker.mockResponseOnce(async () => {
+		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-when-ref',
 			repositoryHttp,
+			'read-when-ref',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: undefined })
@@ -306,12 +306,12 @@ describe('Read', () => {
 	})
 
 	it('When with function', async () => {
-		fetchMocker.mockResponseOnce(async () => {
+		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
-			'read-when-func',
 			repositoryHttp,
+			'read-when-func',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: undefined })
@@ -329,5 +329,35 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+	})
+
+	it('Group queries (infinite scroll)', async () => {
+		// page 1
+		fetchMock.mockResponseOnce(async () => {
+			return JSON.stringify([{ id: '1' }, { id: '2' }])
+		})
+		const useStoreReposotory = defineStoreRepository<Entity>(
+			repositoryHttp,
+			'read-group',
+		)
+		const { read } = useStoreReposotory()
+		const params = ref({ page: 1, limit: 2 })
+		const { isLoading, isSuccess, data } = read(params, { group: true })
+		expect(isLoading.value).toBe(true)
+		await flushPromises()
+		expect(isLoading.value).toBe(false)
+		expect(isSuccess.value).toBe(true)
+		expect(data.value.length).toBe(2)
+		// page 2
+		fetchMock.mockResponseOnce(async () => {
+			return JSON.stringify([{ id: 1 }, { id: 2 }])
+		})
+		params.value.page = 2
+		await nextTick()
+		expect(isLoading.value).toBe(true)
+		await flushPromises()
+		expect(isLoading.value).toBe(false)
+		expect(isSuccess.value).toBe(true)
+		expect(data.value.length).toBe(4)
 	})
 })
