@@ -47,7 +47,7 @@ import { defineStoreRepository } from '@volverjs/query-vue'
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
 
 /* Define an User type */
-export type User = {
+type User = {
   id: number
   username: string
 }
@@ -67,13 +67,13 @@ export const useUsersStore = defineStoreRepository<User>(
 )
 ```
 
-In a component you can use the `useStore` composable to access the store repository actions and getters:
+In a component you can use the `useUsersStore` composable to access the store repository actions and getters:
 
 ```vue
 <script setup lang="ts">
-  import { type User, useUsersStore } from './user-store'
+  import { useUsersStore } from './user-store'
 
-  const { read } = useStore()
+  const { read } = useUsersStore()
   /*
    * `read()` automatically execute a
    * GET request to https://my-domain.com/users
@@ -88,7 +88,7 @@ In a component you can use the `useStore` composable to access the store reposit
     <h1>Users</h1>
     <ul>
       <li v-for="user in users" :key="user.id">
-        {{ user.name }}
+        {{ user.username }}
       </li>
     </ul>
   </div>
