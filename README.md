@@ -156,6 +156,7 @@ const { data } = read(parameters, {
 parameters.value = {
   page: 2
 }
+// `read()` will be re-executed
 ```
 
 `autoExecute` can be stopped with `stop()` method:
@@ -171,6 +172,7 @@ const { data, stop } = read(parameters, {
 // ...
 
 stop()
+// `read()` will not be re-executed
 ```
 
 A reactive parameters update can be ignored with `ignoreUpdates` method:
@@ -203,6 +205,7 @@ const { data, execute } = read()
 // ...
 
 execute()
+// `read()` will be re-executed
 ```
 
 `execute()` accepts an optional parameters object that will be passed to the repository `read()` method:
@@ -216,6 +219,7 @@ execute({
   sort: 'name',
   order: 'asc'
 })
+// `read()` will be re-executed with the new parameters
 ```
 
 A `read()` can be executed later with `immediate: false` option:
@@ -226,6 +230,7 @@ const { data, execute } = read(
     page: 1
   },
   {
+    // `read()` will not be executed
     immediate: false
   }
 )
@@ -233,6 +238,7 @@ const { data, execute } = read(
 // ...
 
 execute()
+// `read()` will be executed for the first time
 ```
 
 ### Execute When
@@ -249,8 +255,8 @@ const { data, execute } = read(parameters, {
 
 // ...
 
-// `read()` will be executed
 parameters.value.page = 1
+// `read()` will be executed
 ```
 
 `executeWhen` can also be function that receives the parameters and returns a boolean:
@@ -265,8 +271,8 @@ const { data, execute } = read(parameters, {
 
 // ...
 
-// `read()` will be executed
 parameters.value.page = 1
+// `read()` will be executed
 ```
 
 ### Options
@@ -287,7 +293,7 @@ const { data } = read(parameters, {
    * (ex. inifinite scroll)
    */
   group: false,
-   /*
+  /*
    * Store query results in a
    * separate directory (default: false)
    */
