@@ -357,13 +357,13 @@ export const defineStoreRepository = <Type>(
 				isSuccess,
 				status,
 				error,
-				execute,
-				stop,
-				ignoreUpdates,
 				query: storeQuery,
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
 				metadata: computed(() => storeQuery.value?.metadata),
+				execute,
+				stop,
+				ignoreUpdates,
 				cleanup,
 			}
 		}
@@ -427,7 +427,6 @@ export const defineStoreRepository = <Type>(
 							keys: [data[keyProperty]],
 							params,
 							metadata,
-							group: options?.group,
 						})
 						const key = data[keyProperty]
 						if (key) {
@@ -477,13 +476,13 @@ export const defineStoreRepository = <Type>(
 				isSuccess,
 				status,
 				error,
-				execute,
-				stop,
-				ignoreUpdates,
 				query: storeQuery,
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
 				metadata: computed(() => storeQuery.value?.metadata),
+				execute,
+				stop,
+				ignoreUpdates,
 				cleanup,
 			}
 		}

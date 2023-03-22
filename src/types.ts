@@ -28,6 +28,7 @@ export type StoreRepositoryQuery = {
 export type StoreRepositoryReadOptions = {
 	name?: string
 	group?: boolean
+	directory?: boolean
 	keepAlive?: boolean
 	immediate?: boolean
 	persistence?: number
@@ -36,12 +37,10 @@ export type StoreRepositoryReadOptions = {
 	autoExecuteThrottle?: number
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
-	directory?: boolean
 }
 
 export type StoreRepositorySubmitOptions = {
 	name?: string
-	group?: boolean
 	keepAlive?: boolean
 	immediate?: boolean
 	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)

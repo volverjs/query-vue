@@ -56,6 +56,7 @@ type User = {
 const httpClient = new HttpClient({
   baseURL: 'https://my-domain.com'
 })
+
 /* Create a RepositoryHttp instance */
 const usersRepository = new RepositoryHttp<User>(httpClient, 'users/:id?')
 
@@ -67,7 +68,9 @@ export const useUsersStore = defineStoreRepository<User>(
 )
 ```
 
-In a component you can use the `useUsersStore` composable to access the store repository actions and getters:
+## Read
+
+In a component you can use the `useUsersStore` composable to access the store repository actions and getters and read data from the repository:
 
 ```vue
 <script setup lang="ts">
@@ -78,7 +81,7 @@ In a component you can use the `useUsersStore` composable to access the store re
    * `read()` automatically execute a
    * GET request to https://my-domain.com/users
    */
-  const { data: users, isLoading, isError } = read()
+  const { data, isLoading, isError } = read()
 </script>
 
 <template>
@@ -87,12 +90,251 @@ In a component you can use the `useUsersStore` composable to access the store re
   <div v-else>
     <h1>Users</h1>
     <ul>
-      <li v-for="user in users" :key="user.id">
+      <li v-for="user in data" :key="user.id">
         {{ user.username }}
       </li>
     </ul>
   </div>
 </template>
+```
+
+`read()` returns an object that contains:
+
+```ts
+const {
+  // Reactive boolean that indicates if the request is loading
+  isLoading,
+  // Reactive boolean that indicates if the request has failed
+  isError,
+  // Reactive boolean that indicates if the request has succeeded
+  isSuccess,
+  // Reactive error object
+  error,
+  // Reactive status of the request
+  status,
+  // Reactive query object
+  query,
+  // Reactive array of data returned by the repository
+  data,
+  // Reactive metadata object returned by the repository
+  metadata,
+  // Reactive first item of the `data` array
+  item,
+  // Function to execute the `read()` action
+  execute,
+  // Function to stop `autoExecute` option
+  stop,
+  // Function to ignore reactive parameters updates
+  ignoreUpdates,
+  // Function to cleanup the store repository
+  cleanup
+} = read()
+```
+
+### Parameters
+
+`read()` accepts an optional parameters object that will be passed to the repository `read()` method:
+
+```ts
+const { data } = read({
+  page: 1
+})
+```
+
+Parameters can be reactive, `data` will be automatically updated on parameters change with `autoExecute` option:
+
+```ts
+const parameters = ref({
+  page: 1
+})
+const { data } = read(parameters, {
+  autoExecute: true
+})
+
+// ...
+
+parameters.value = {
+  page: 2
+}
+```
+
+`autoExecute` can be stopped with `stop()` method:
+
+```ts
+const parameters = ref({
+  page: 1
+})
+const { data, stop } = read(parameters, {
+  autoExecute: true
+})
+
+// ...
+
+stop()
+```
+
+A reactive parameters update can be ignored with `ignoreUpdates` method:
+
+```ts
+const parameters = ref({
+  page: 1
+})
+const { data, ignoreUpdates } = read(parameters, {
+  autoExecute: true
+})
+
+// ...
+
+ignoreUpdates(() => {
+  parameters.value = {
+    page: 1,
+    other: 'value'
+  }
+})
+```
+
+### Execute
+
+You can re-execute the `read()` action by calling the `execute()` method:
+
+```ts
+const { data, execute } = read()
+
+// ...
+
+execute()
+```
+
+`execute()` accepts an optional parameters object that will be passed to the repository `read()` method:
+
+```ts
+const { data, execute } = read()
+
+// ...
+
+execute({
+  sort: 'name',
+  order: 'asc'
+})
+```
+
+A `read()` can be executed later with `immediate: false` option:
+
+```ts
+const { data, execute } = read(
+  {
+    page: 1
+  },
+  {
+    immediate: false
+  }
+)
+
+// ...
+
+execute()
+```
+
+### Execute When
+
+A `read()` can be executed when a condition is met with `executeWhen` option:
+
+```ts
+const parameters = ref({
+  page: undefined
+})
+const { data, execute } = read(parameters, {
+  executeWhen: computed(() => parameters.value.page !== undefined)
+})
+
+// ...
+
+// `read()` will be executed
+parameters.value.page = 1
+```
+
+`executeWhen` can also be function that receives the parameters and returns a boolean:
+
+```ts
+const parameters = ref({
+  page: undefined
+})
+const { data, execute } = read(parameters, {
+  executeWhen: (newParams) => newParams.page !== undefined
+})
+
+// ...
+
+// `read()` will be executed
+parameters.value.page = 1
+```
+
+### Options
+
+`read()` accepts an optional options object:
+
+```ts
+const { data } = read(parameters, {
+  /*
+   * The name of the query (default: undefined)
+   * if not defined, the query name will be generated
+   */
+  name: undefined,
+  /*
+   * Group all queries executed by the same read() action
+   * and exposes all items in `data` (default: false)
+   * Can be useful when you need to display a list of items
+   * (ex. inifinite scroll)
+   */
+  group: false,
+   /*
+   * Store query results in a
+   * separate directory (default: false)
+   */
+  directory: false
+  /*
+   * Keep the query alive when
+   * the component is unmounted (default: false)
+   */
+  keepAlive: false,
+  /*
+   * Execute the `read()` action immediately (default: true)
+   */
+  immediate: true,
+  /*
+   * The query cache time in milliseconds (default: 60 * 60 * 1000)
+   */
+  persistence: 60 * 60 * 1000,
+  /*
+   * A boolean reactive parameter (or a function) that indicates
+   * when the `read()` action should be executed (default: undefined)
+   * For example:
+   * `executeWhen: (newParams) => newParams.id !== undefined`
+   * Or:
+   * `executeWhen: computed(() => parameters.value.id !== undefined)`
+   */
+  executeWhen: undefined,
+  /*
+   * Automatically execute the `read()` action
+   * on reactive parameters change (default: false)
+   */
+  autoExecute: false,
+  /*
+   * The query auto execute throttle
+   * in milliseconds (default: 500)
+   */
+  autoExecuteThrottle: 500
+  /*
+   * Automatically execute the `read()` action
+   * on window focus (default: false)
+   */
+  autoExecuteOnWindowFocus: false,
+  /*
+   * Automatically execute the `read()` action
+   * on document visibility change (default: false)
+   */
+  autoExecuteOnDocumentVisibility: false,
+})
 ```
 
 ## Acknoledgements
