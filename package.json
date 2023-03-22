@@ -1,5 +1,5 @@
 {
-    "name": "@volverjs/store-repository-pinia",
+    "name": "@volverjs/query-vue",
     "description": "Repository pattern applied to a pinia store.",
     "author": "24/Consulting",
     "license": "MIT",
@@ -7,13 +7,13 @@
         "repository",
         "pinia"
     ],
-    "homepage": "https://github.com/volverjs/store-repository-pinia",
+    "homepage": "https://github.com/volverjs/query-vue",
     "repository": {
         "type": "git",
-        "url": "https://github.com/volverjs/store-repository-pinia"
+        "url": "https://github.com/volverjs/query-vue"
     },
     "bugs": {
-        "url": "https://github.com/volverjs/store-repository-pinia/issues"
+        "url": "https://github.com/volverjs/query-vue/issues"
     },
     "version": "0.0.0",
     "engines": {
