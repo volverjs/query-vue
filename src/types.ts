@@ -3,6 +3,14 @@ import { type Ref } from 'vue'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ParamMap = Record<string, any>
 
+export type StoreRepositoryOptions<Type> = {
+	keyProperty?: keyof Type
+	defaultPersistence?: number
+	defaultThrottle?: number
+	hashFunction?: (str: string) => number
+	cleanUpEvery?: number
+}
+
 export type StoreRepositoryHash = {
 	keys?: unknown[]
 	data?: unknown[]
