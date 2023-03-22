@@ -31,10 +31,12 @@ export type StoreRepositoryReadOptions = {
 	keepAlive?: boolean
 	immediate?: boolean
 	persistence?: number
-	refetchOnWindowFocus?: boolean
-	refetchOnDocumentVisibility?: boolean
+	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	autoExecute?: boolean
+	autoExecuteThrottle?: number
+	autoExecuteOnWindowFocus?: boolean
+	autoExecuteOnDocumentVisibility?: boolean
 	directory?: boolean
-	when?: Ref<boolean> | ((params?: ParamMap) => boolean)
 }
 
 export type StoreRepositorySubmitOptions = {
@@ -42,9 +44,9 @@ export type StoreRepositorySubmitOptions = {
 	group?: boolean
 	keepAlive?: boolean
 	immediate?: boolean
-	autoSubmit?: boolean
-	autoSubmitThrottle?: number
-	autoSubmitOnWindowFocus?: boolean
-	autoSubmitOnDocumentVisibility?: boolean
-	when?: Ref<boolean> | ((newItem?: unknown, params?: ParamMap) => boolean)
+	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	autoExecute?: boolean
+	autoExecuteThrottle?: number
+	autoExecuteOnWindowFocus?: boolean
+	autoExecuteOnDocumentVisibility?: boolean
 }

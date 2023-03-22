@@ -1,9 +1,9 @@
 import {
 	type IgnoredUpdater,
-	throttleFilter,
 	useDocumentVisibility,
 	useWindowFocus,
 	watchIgnorable,
+	throttleFilter,
 } from '@vueuse/core'
 import {
 	type Ref,
@@ -52,89 +52,72 @@ export function initRefetchHandlers(
 ) {
 	const {
 		immediate = true,
-		refetchOnWindowFocus = false,
-		refetchOnDocumentVisibility = false,
-		when = () => true,
+		executeWhen = () => true,
+		autoExecute = false,
+		autoExecuteThrottle = 500,
+		autoExecuteOnWindowFocus = false,
+		autoExecuteOnDocumentVisibility = false,
 	} = options
-	// watch params and refetch
+	let ignoreUpdates: IgnoredUpdater | undefined = (cb: () => void) => cb()
 	let stopHandler: WatchStopHandle | undefined
 	let refetchOnFocunsStopHandler: WatchStopHandle | undefined
 	let documentVisibilityStopHandler: WatchStopHandle | undefined
-	if (isRef(params)) {
-		if (!isRef(when)) {
-			stopHandler = watch(
-				params,
-				(newValue, oldValue, onCleanup) => {
-					if (when(newValue as ParamMap)) {
-						refetch(
-							params,
-							oldValue as ParamMap | undefined,
-							onCleanup,
-						)
+	const normalizedParams = isRef(params)
+		? (params as Ref<ParamMap>)
+		: computed<ParamMap>(() => params)
+	const normalizedExecuteWhen = isRef(executeWhen)
+		? executeWhen
+		: computed(() => executeWhen(unref(params)))
+	// refetch on params change
+	if (autoExecute) {
+		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
+			watchIgnorable(
+				[normalizedParams, normalizedExecuteWhen],
+				([newParams, newWhen], [oldParams], onCleanup) => {
+					if (newWhen) {
+						refetch(newParams, oldParams, onCleanup)
 					}
 				},
 				{
+					eventFilter: throttleFilter(autoExecuteThrottle),
 					immediate,
 					deep: true,
 				},
 			)
-		} else {
-			stopHandler = watch<ParamMap, boolean>(
-				[params, when],
-				(newValue, oldValue, onCleanup) => {
-					if (newValue[1]) {
-						refetch(newValue[0], oldValue?.[0], onCleanup)
-					}
-				},
-				{
-					immediate,
-					deep: true,
-				},
-			)
-		}
+		ignoreUpdates = watchIgnoreUpdates
+		stopHandler = watchStopHandler
 	} else {
-		if (!isRef(when)) {
-			if (when(params) && immediate) {
-				refetch(params)
-			}
-		} else {
-			stopHandler = watch(
-				when,
-				(newValue, oldValue, onCleanup) => {
-					if (newValue) {
-						return refetch(params, undefined, onCleanup)
+		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
+			watchIgnorable(
+				normalizedExecuteWhen,
+				(newWhen, oldWhen, onCleanup) => {
+					if (newWhen && !oldWhen) {
+						refetch(unref(params), undefined, onCleanup)
 					}
 				},
 				{
+					eventFilter: throttleFilter(autoExecuteThrottle),
 					immediate,
 					deep: true,
 				},
 			)
-		}
+		ignoreUpdates = watchIgnoreUpdates
+		stopHandler = watchStopHandler
 	}
 	// refetch on window focus
-	if (refetchOnWindowFocus) {
+	if (autoExecuteOnWindowFocus) {
 		const focused = useWindowFocus()
 		refetchOnFocunsStopHandler = watch(focused, (isFocused) => {
-			if (isFocused) {
-				if (
-					(isRef(when) && when.value) ||
-					(!isRef(when) && when(unref(params)))
-				) {
-					refetch()
-				}
+			if (isFocused && normalizedExecuteWhen.value) {
+				refetch()
 			}
 		})
 	}
 	// refetch on document visibility
-	if (refetchOnDocumentVisibility) {
+	if (autoExecuteOnDocumentVisibility) {
 		const visibility = useDocumentVisibility()
 		documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
-			if (
-				visibilityState === 'visible' &&
-				((isRef(when) && when.value) ||
-					(!isRef(when) && when(unref(params))))
-			) {
+			if (visibilityState === 'visible' && normalizedExecuteWhen.value) {
 				refetch()
 			}
 		})
@@ -145,7 +128,7 @@ export function initRefetchHandlers(
 		refetchOnFocunsStopHandler?.()
 		documentVisibilityStopHandler?.()
 	}
-	return { stop }
+	return { stop, ignoreUpdates }
 }
 
 export function initResubmitHandlers<Type>(
@@ -161,58 +144,83 @@ export function initResubmitHandlers<Type>(
 ) {
 	const {
 		immediate = true,
-		autoSubmit = false,
-		autoSubmitThrottle = 500,
-		autoSubmitOnWindowFocus = false,
-		autoSubmitOnDocumentVisibility = false,
+		executeWhen = () => true,
+		autoExecute = false,
+		autoExecuteThrottle = 500,
+		autoExecuteOnWindowFocus = false,
+		autoExecuteOnDocumentVisibility = false,
 	} = options
-	// watch params and refetch
-	let stop: WatchStopHandle | undefined
 	let ignoreUpdates: IgnoredUpdater | undefined = (cb: () => void) => cb()
-	if (autoSubmit && isRef(item)) {
-		const { stop: stopHandler, ignoreUpdates: ignoreUpdatesHandler } =
+	let stopHandler: WatchStopHandle | undefined
+	let refetchOnFocunsStopHandler: WatchStopHandle | undefined
+	let documentVisibilityStopHandler: WatchStopHandle | undefined
+	const normalizedItem = isRef(item) ? item : computed(() => item)
+	const normalizedParams = isRef(params)
+		? (params as Ref<ParamMap>)
+		: computed(() => params)
+	const normalizedExecuteWhen = isRef(executeWhen)
+		? executeWhen
+		: computed(() => executeWhen(unref(params)))
+	// auto-submit on item or params change
+	if (autoExecute) {
+		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
-				item,
-				async (
-					newValue: Type | undefined,
-					oldValue: Type | undefined,
-					cleanUp,
-				) => {
-					if (newValue) {
-						await resubmit(newValue, unref(params), cleanUp)
+				[normalizedItem, normalizedParams, normalizedExecuteWhen],
+				([newItem, newParams, newWhen], oldValue, onCleanup) => {
+					if (newWhen) {
+						resubmit(newItem, newParams, onCleanup)
 					}
 				},
 				{
-					eventFilter: throttleFilter(autoSubmitThrottle),
+					eventFilter: throttleFilter(autoExecuteThrottle),
 					immediate,
 					deep: true,
 				},
 			)
-		ignoreUpdates = ignoreUpdatesHandler
-		stop = () => {
-			status.value = StoreRepositoryStatus.idle
-			return stopHandler()
-		}
-	} else if (immediate) {
-		resubmit()
+		ignoreUpdates = watchIgnoreUpdates
+		stopHandler = watchStopHandler
+	} else {
+		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
+			watchIgnorable(
+				normalizedExecuteWhen,
+				(newWhen, oldWhen, onCleanup) => {
+					if (newWhen && !oldWhen) {
+						resubmit(unref(item), unref(params), onCleanup)
+					}
+				},
+				{
+					eventFilter: throttleFilter(autoExecuteThrottle),
+					immediate,
+					deep: true,
+				},
+			)
+		ignoreUpdates = watchIgnoreUpdates
+		stopHandler = watchStopHandler
 	}
+
 	// refetch on window focus
-	if (autoSubmitOnWindowFocus) {
+	if (autoExecuteOnWindowFocus) {
 		const focused = useWindowFocus()
-		watch(focused, (isFocused) => {
-			if (!isFocused) {
+		refetchOnFocunsStopHandler = watch(focused, (isFocused) => {
+			if (isFocused && normalizedExecuteWhen.value) {
 				resubmit()
 			}
 		})
 	}
 	// refetch on document visibility
-	if (autoSubmitOnDocumentVisibility) {
+	if (autoExecuteOnDocumentVisibility) {
 		const visibility = useDocumentVisibility()
-		watch(visibility, (visibilityState) => {
-			if (visibilityState !== 'visible') {
+		documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
+			if (visibilityState === 'visible' && normalizedExecuteWhen.value) {
 				resubmit()
 			}
 		})
+	}
+	const stop = () => {
+		status.value = StoreRepositoryStatus.idle
+		stopHandler?.()
+		refetchOnFocunsStopHandler?.()
+		documentVisibilityStopHandler?.()
 	}
 	return { stop, ignoreUpdates }
 }

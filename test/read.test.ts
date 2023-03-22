@@ -33,7 +33,7 @@ describe('Read', () => {
 	})
 
 	it('Read from a parameters map', async () => {
-		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read',
@@ -52,20 +52,23 @@ describe('Read', () => {
 	})
 
 	it('Read cached values and force refetch', async () => {
-		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
-		const { isLoading, isSuccess, data, item, refetch } = read({
+		const { isLoading, isSuccess, data, item, execute } = read({
 			id: '12345',
 		})
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
-		refetch()
+		execute()
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
 		expect(isLoading.value).toBe(false)
@@ -75,11 +78,14 @@ describe('Read', () => {
 		expect(getItemByKey('12345').value.id).toBe('12345')
 	})
 
-	it('Read values without persistence', async () => {
-		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+	it('Read without persistence', async () => {
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item } = read(
@@ -97,11 +103,14 @@ describe('Read', () => {
 		expect(getItemByKey('12345').value.id).toBe('12345')
 	})
 
-	it('Read from a parameters map and query name', async () => {
-		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+	it('Read from a map and query name', async () => {
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-query-name',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const QUERY_NAME = 'my-query'
 		const { read, getQueryByName, getItemByKey } = useStoreReposotory()
@@ -120,11 +129,14 @@ describe('Read', () => {
 		expect(getItemByKey('12345').value.id).toBe('12345')
 	})
 
-	it('Read from a parameters map and directory', async () => {
-		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+	it('Read from a map and make a directory', async () => {
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-directory',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data } = read(
@@ -142,38 +154,46 @@ describe('Read', () => {
 		expect(item.value).toBe(undefined)
 	})
 
-	it('Read from a parameters map not immediate', async () => {
-		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]), {})
+	it('Read from a map not immediate', async () => {
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-not-immediate',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
-		const { isLoading, isSuccess, refetch, data } = read(
+		const { isLoading, isSuccess, execute, data } = read(
 			{
 				id: '12345',
 			},
 			{ immediate: false },
 		)
 		expect(isLoading.value).toBe(false)
-		await refetch()
+		await execute()
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
 	})
 
-	it('Read from a parameters ref', async () => {
+	it('Read from a ref with autoExecute', async () => {
 		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-ref',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: '12345' })
-		const { isLoading, isSuccess, data, item } = read(params)
+		const { isLoading, isSuccess, data, item } = read(params, {
+			autoExecute: true,
+		})
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
 		expect(isLoading.value).toBe(false)
@@ -194,17 +214,22 @@ describe('Read', () => {
 		expect(getItemByKey('54321').value.id).toBe('54321')
 	})
 
-	it('Read from a parameters ref and stop', async () => {
+	it('Read from a ref with autoExecute and stop', async () => {
 		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-ref-stop',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: '12345' })
-		const { isLoading, isSuccess, data, item, stop } = read(params)
+		const { isLoading, isSuccess, data, item, stop } = read(params, {
+			autoExecute: true,
+		})
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
 		expect(isLoading.value).toBe(false)
@@ -218,16 +243,19 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 	})
 
-	it('Refetch', async () => {
+	it('Re-execute', async () => {
 		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-refetch',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
-		const { isLoading, isSuccess, data, item, refetch } = read({
+		const { isLoading, isSuccess, data, item, execute } = read({
 			id: '12345',
 		})
 		expect(isLoading.value).toBe(true)
@@ -239,7 +267,7 @@ describe('Read', () => {
 		expect(getItemByKey('12345').value.id).toBe('12345')
 		// change params
 		fetchMock.mockResponseOnce(JSON.stringify([{ id: '54321' }]))
-		refetch({ id: '54321' })
+		execute({ id: '54321' })
 		await nextTick()
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
@@ -250,25 +278,28 @@ describe('Read', () => {
 		expect(getItemByKey('54321').value.id).toBe('54321')
 	})
 
-	it('When with params map', async () => {
+	it('Ref executeWhen ', async () => {
 		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
-			'read-when',
+			'read-execute-when',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
-		const when = ref(false)
+		const executeWhen = ref(false)
 		const { isLoading, isSuccess, data, item } = read(
 			{
 				id: '12345',
 			},
-			{ when },
+			{ executeWhen },
 		)
 		expect(isLoading.value).toBe(false)
-		// change when
-		when.value = true
+		// change executeWhen
+		executeWhen.value = true
 		await nextTick()
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
@@ -279,18 +310,21 @@ describe('Read', () => {
 		expect(getItemByKey('12345').value.id).toBe('12345')
 	})
 
-	it('When with computed', async () => {
+	it('Computed executeWhen', async () => {
 		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
-			'read-when-ref',
+			'read-execute-when-computed',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: undefined })
 		const { isLoading, isSuccess, data, item } = read(params, {
-			when: computed(() => params.value.id !== undefined),
+			executeWhen: computed(() => params.value.id !== undefined),
 		})
 		expect(isLoading.value).toBe(false)
 		// change when
@@ -305,18 +339,21 @@ describe('Read', () => {
 		expect(getItemByKey('12345').value.id).toBe('12345')
 	})
 
-	it('When with function', async () => {
+	it('Function executeWhen', async () => {
 		fetchMock.mockResponseOnce(async () => {
 			return JSON.stringify([{ id: '12345' }])
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-when-func',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: undefined })
 		const { isLoading, isSuccess, data, item } = read(params, {
-			when: (params) => params.id !== undefined,
+			executeWhen: (params) => params.id !== undefined,
 		})
 		expect(isLoading.value).toBe(false)
 		// change when
@@ -339,10 +376,16 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-group',
+			{
+				defaultThrottle: 0,
+			},
 		)
 		const { read } = useStoreReposotory()
 		const params = ref({ page: 1, limit: 2 })
-		const { isLoading, isSuccess, data } = read(params, { group: true })
+		const { isLoading, isSuccess, data } = read(params, {
+			group: true,
+			autoExecute: true,
+		})
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
 		expect(isLoading.value).toBe(false)

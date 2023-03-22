@@ -250,7 +250,7 @@ export const defineStoreRepository = <Type>(
 			const storeQuery = getQueryByName(storeQueryName)
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
-			const refetch = async (
+			const execute = async (
 				newParams?: ParamMap,
 				oldParams?: ParamMap,
 				onCleanup?: (cleanupFn: () => void) => void,
@@ -332,11 +332,15 @@ export const defineStoreRepository = <Type>(
 					return { error: error.value, status: status.value }
 				}
 			}
-			const { stop } = initRefetchHandlers(
+			const { stop, ignoreUpdates } = initRefetchHandlers(
 				params,
-				refetch,
+				execute,
 				status,
-				options,
+				{
+					...options,
+					autoExecuteThrottle:
+						options?.autoExecuteThrottle ?? defaultThrottle,
+				},
 			)
 			const cleanup = () => {
 				if (!options?.keepAlive) {
@@ -353,8 +357,9 @@ export const defineStoreRepository = <Type>(
 				isSuccess,
 				status,
 				error,
-				refetch,
+				execute,
 				stop,
+				ignoreUpdates,
 				query: storeQuery,
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
@@ -373,7 +378,7 @@ export const defineStoreRepository = <Type>(
 			const storeQuery = getQueryByName(storeQueryName)
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
-			const resubmit = async (
+			const execute = async (
 				newItem?: Type,
 				newParams?: ParamMap,
 				onCleanup?: (cleanupFn: () => void) => void,
@@ -386,17 +391,6 @@ export const defineStoreRepository = <Type>(
 						!newParams[keyProperty as string]
 					) {
 						newParams[keyProperty as string] = newItem[keyProperty]
-					}
-					if (options?.when) {
-						if (isRef(options.when)) {
-							if (!unref(options.when)) {
-								return
-							}
-						} else {
-							if (!options.when(newItem, newParams)) {
-								return
-							}
-						}
 					}
 					const hash = paramsToHash(newParams)
 					status.value = StoreRepositoryStatus.loading
@@ -460,12 +454,12 @@ export const defineStoreRepository = <Type>(
 			const { stop, ignoreUpdates } = initResubmitHandlers<Type>(
 				item,
 				params,
-				resubmit,
+				execute,
 				status,
 				{
 					...options,
-					autoSubmitThrottle:
-						options?.autoSubmitThrottle ?? defaultThrottle,
+					autoExecuteThrottle:
+						options?.autoExecuteThrottle ?? defaultThrottle,
 				},
 			)
 			const cleanup = () => {
@@ -483,7 +477,7 @@ export const defineStoreRepository = <Type>(
 				isSuccess,
 				status,
 				error,
-				resubmit,
+				execute,
 				stop,
 				ignoreUpdates,
 				query: storeQuery,
