@@ -25,7 +25,7 @@ export const defineStoreRepository = <Type>(
 ) => {
 	const keyProperty = options.keyProperty ?? ('id' as keyof Type)
 	const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
-	const defaultThrottle = options.defaultThrottle ?? 500
+	const defaultDebounce = options.defaultDebounce ?? 0
 	const hashFunction = options.hashFunction ?? Hash.cyrb53
 	const cleanUpEvery = options.cleanUpEvery ?? 3 * 1000
 
@@ -338,8 +338,8 @@ export const defineStoreRepository = <Type>(
 				status,
 				{
 					...options,
-					autoExecuteThrottle:
-						options?.autoExecuteThrottle ?? defaultThrottle,
+					autoExecuteDebounce:
+						options?.autoExecuteDebounce ?? defaultDebounce,
 				},
 			)
 			const cleanup = () => {
@@ -457,8 +457,8 @@ export const defineStoreRepository = <Type>(
 				status,
 				{
 					...options,
-					autoExecuteThrottle:
-						options?.autoExecuteThrottle ?? defaultThrottle,
+					autoExecuteDebounce:
+						options?.autoExecuteDebounce ?? defaultDebounce,
 				},
 			)
 			const cleanup = () => {

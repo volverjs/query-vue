@@ -3,7 +3,7 @@ import {
 	useDocumentVisibility,
 	useWindowFocus,
 	watchIgnorable,
-	throttleFilter,
+	debounceFilter,
 } from '@vueuse/core'
 import {
 	type Ref,
@@ -54,7 +54,7 @@ export function initRefetchHandlers(
 		immediate = true,
 		executeWhen = () => true,
 		autoExecute = false,
-		autoExecuteThrottle = 500,
+		autoExecuteDebounce = 500,
 		autoExecuteOnWindowFocus = false,
 		autoExecuteOnDocumentVisibility = false,
 	} = options
@@ -79,7 +79,7 @@ export function initRefetchHandlers(
 					}
 				},
 				{
-					eventFilter: throttleFilter(autoExecuteThrottle),
+					eventFilter: debounceFilter(autoExecuteDebounce),
 					immediate,
 					deep: true,
 				},
@@ -96,7 +96,7 @@ export function initRefetchHandlers(
 					}
 				},
 				{
-					eventFilter: throttleFilter(autoExecuteThrottle),
+					eventFilter: debounceFilter(autoExecuteDebounce),
 					immediate,
 					deep: true,
 				},
@@ -146,7 +146,7 @@ export function initResubmitHandlers<Type>(
 		immediate = true,
 		executeWhen = () => true,
 		autoExecute = false,
-		autoExecuteThrottle = 500,
+		autoExecuteDebounce = 500,
 		autoExecuteOnWindowFocus = false,
 		autoExecuteOnDocumentVisibility = false,
 	} = options
@@ -172,7 +172,7 @@ export function initResubmitHandlers<Type>(
 					}
 				},
 				{
-					eventFilter: throttleFilter(autoExecuteThrottle),
+					eventFilter: debounceFilter(autoExecuteDebounce),
 					immediate,
 					deep: true,
 				},
@@ -189,7 +189,7 @@ export function initResubmitHandlers<Type>(
 					}
 				},
 				{
-					eventFilter: throttleFilter(autoExecuteThrottle),
+					eventFilter: debounceFilter(autoExecuteDebounce),
 					immediate,
 					deep: true,
 				},

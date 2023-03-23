@@ -148,9 +148,6 @@ describe('Submit', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'submit-post-put',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { submit, getItemByKey } = useStoreReposotory()
 		const item = ref<Entity>({

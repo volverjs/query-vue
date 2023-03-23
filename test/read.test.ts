@@ -56,9 +56,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item, execute } = read({
@@ -83,9 +80,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item } = read(
@@ -108,9 +102,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-query-name',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const QUERY_NAME = 'my-query'
 		const { read, getQueryByName, getItemByKey } = useStoreReposotory()
@@ -134,9 +125,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-directory',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data } = read(
@@ -159,9 +147,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-not-immediate',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, execute, data } = read(
@@ -185,9 +170,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-ref',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: '12345' })
@@ -221,9 +203,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-ref-stop',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: '12345' })
@@ -250,9 +229,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-refetch',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item, execute } = read({
@@ -285,9 +261,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-execute-when',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const executeWhen = ref(false)
@@ -317,9 +290,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-execute-when-computed',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: undefined })
@@ -346,9 +316,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-when-func',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const params = ref({ id: undefined })
@@ -376,9 +343,6 @@ describe('Read', () => {
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
 			'read-group',
-			{
-				defaultThrottle: 0,
-			},
 		)
 		const { read } = useStoreReposotory()
 		const params = ref({ page: 1, limit: 2 })

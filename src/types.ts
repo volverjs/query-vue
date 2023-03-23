@@ -6,7 +6,7 @@ export type ParamMap = Record<string, any>
 export type StoreRepositoryOptions<Type> = {
 	keyProperty?: keyof Type
 	defaultPersistence?: number
-	defaultThrottle?: number
+	defaultDebounce?: number | Ref<number>
 	hashFunction?: (str: string) => number
 	cleanUpEvery?: number
 }
@@ -34,7 +34,7 @@ export type StoreRepositoryReadOptions = {
 	persistence?: number
 	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
 	autoExecute?: boolean
-	autoExecuteThrottle?: number
+	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
 }
@@ -45,7 +45,7 @@ export type StoreRepositorySubmitOptions = {
 	immediate?: boolean
 	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
 	autoExecute?: boolean
-	autoExecuteThrottle?: number
+	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
 }

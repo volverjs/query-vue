@@ -327,9 +327,9 @@ const { data } = read(parameters, {
   autoExecute: false,
   /*
    * The query auto execute throttle
-   * in milliseconds (default: 500)
+   * in milliseconds (default: 0)
    */
-  autoExecuteThrottle: 500
+  autoExecuteDebounce: 0
   /*
    * Automatically execute the `read()` action
    * on window focus (default: false)
