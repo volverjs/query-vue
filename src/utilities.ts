@@ -68,7 +68,7 @@ export function initAutoExecuteReadHandlers(
 	const normalizedExecuteWhen = isRef(executeWhen)
 		? executeWhen
 		: computed(() => executeWhen(unref(params)))
-	// execute on params change
+	// execute on params  change
 	if (autoExecute) {
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
