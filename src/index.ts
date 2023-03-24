@@ -2,7 +2,7 @@ import { type Ref, computed, isRef, ref, unref, watch } from 'vue'
 import { useIdle, tryOnBeforeUnmount } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { Hash } from '@volverjs/data/hash'
-import { type Repository } from '@volverjs/data'
+import type { HttpClientRequestOptions, Repository } from '@volverjs/data'
 import type {
 	ParamMap,
 	StoreRepositoryHash,
@@ -14,8 +14,8 @@ import type {
 import { StoreRepositoryStatus } from './constants'
 import {
 	initStatus,
-	initRefetchHandlers,
-	initResubmitHandlers,
+	initAutoExecuteReadHandlers,
+	initAutoExecuteSubmitHandlers,
 } from './utilities'
 
 export const defineStoreRepository = <Type>(
@@ -332,7 +332,7 @@ export const defineStoreRepository = <Type>(
 					return { error: error.value, status: status.value }
 				}
 			}
-			const { stop, ignoreUpdates } = initRefetchHandlers(
+			const { stop, ignoreUpdates } = initAutoExecuteReadHandlers(
 				params,
 				execute,
 				status,
@@ -450,7 +450,7 @@ export const defineStoreRepository = <Type>(
 					}
 				}
 			}
-			const { stop, ignoreUpdates } = initResubmitHandlers<Type>(
+			const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<Type>(
 				item,
 				params,
 				execute,
@@ -487,12 +487,71 @@ export const defineStoreRepository = <Type>(
 			}
 		}
 
+		const remove = (
+			params: ParamMap,
+			options?: HttpClientRequestOptions,
+		) => {
+			const { status, isLoading, isError, isSuccess, error } =
+				initStatus()
+
+			// first check keyProperty exist on params
+			if (!(keyProperty in params)) {
+				status.value = StoreRepositoryStatus.error
+				error.value = new Error(
+					`remove: params must contain a ${String(
+						keyProperty,
+					)} property`,
+				)
+				return { error, status }
+			}
+
+			const execute = async () => {
+				status.value = StoreRepositoryStatus.loading
+				const { response } = repository.delete(params, options)
+
+				try {
+					const { aborted } = await response
+
+					if (aborted) {
+						status.value = StoreRepositoryStatus.idle
+						return
+					}
+
+					status.value = StoreRepositoryStatus.success
+
+					if (Array.isArray(params[keyProperty as string])) {
+						params[keyProperty as string].forEach((key: string) => {
+							storeItems.value.delete(key)
+						})
+					} else {
+						storeItems.value.delete(params[keyProperty as string])
+					}
+					return
+				} catch (err) {
+					status.value = StoreRepositoryStatus.error
+					error.value = err as Error
+					return
+				}
+			}
+
+			execute()
+
+			return {
+				isLoading,
+				isError,
+				isSuccess,
+				error,
+				status,
+			}
+		}
+
 		return {
 			queries: storeQueries,
 			items: storeItems,
 			hashes: storeHashes,
 			read,
 			submit,
+			remove,
 			getQueryByName,
 			getItemByKey,
 			getItemsByKeys,

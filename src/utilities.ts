@@ -40,9 +40,9 @@ export function initStatus() {
 	return { status, isLoading, isError, isSuccess, error }
 }
 
-export function initRefetchHandlers(
+export function initAutoExecuteReadHandlers(
 	params: Ref<ParamMap> | ParamMap,
-	refetch: (
+	execute: (
 		newValue?: ParamMap,
 		oldValue?: ParamMap,
 		onCleanup?: (cleanupFn: () => void) => void,
@@ -60,7 +60,7 @@ export function initRefetchHandlers(
 	} = options
 	let ignoreUpdates: IgnoredUpdater | undefined = (cb: () => void) => cb()
 	let stopHandler: WatchStopHandle | undefined
-	let refetchOnFocunsStopHandler: WatchStopHandle | undefined
+	let executeOnFocunsStopHandler: WatchStopHandle | undefined
 	let documentVisibilityStopHandler: WatchStopHandle | undefined
 	const normalizedParams = isRef(params)
 		? (params as Ref<ParamMap>)
@@ -68,19 +68,18 @@ export function initRefetchHandlers(
 	const normalizedExecuteWhen = isRef(executeWhen)
 		? executeWhen
 		: computed(() => executeWhen(unref(params)))
-	// refetch on params change
+	// execute on params change
 	if (autoExecute) {
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
 				[normalizedParams, normalizedExecuteWhen],
 				([newParams, newWhen], [oldParams], onCleanup) => {
 					if (newWhen) {
-						refetch(newParams, oldParams, onCleanup)
+						execute(newParams, oldParams, onCleanup)
 					}
 				},
 				{
 					eventFilter: debounceFilter(autoExecuteDebounce),
-					immediate,
 					deep: true,
 				},
 			)
@@ -92,46 +91,50 @@ export function initRefetchHandlers(
 				normalizedExecuteWhen,
 				(newWhen, oldWhen, onCleanup) => {
 					if (newWhen && !oldWhen) {
-						refetch(unref(params), undefined, onCleanup)
+						execute(unref(params), undefined, onCleanup)
 					}
 				},
 				{
 					eventFilter: debounceFilter(autoExecuteDebounce),
-					immediate,
 					deep: true,
 				},
 			)
 		ignoreUpdates = watchIgnoreUpdates
 		stopHandler = watchStopHandler
 	}
-	// refetch on window focus
+
+	if (immediate && normalizedExecuteWhen.value) {
+		execute(unref(params))
+	}
+
+	// execute on window focus
 	if (autoExecuteOnWindowFocus) {
 		const focused = useWindowFocus()
-		refetchOnFocunsStopHandler = watch(focused, (isFocused) => {
+		executeOnFocunsStopHandler = watch(focused, (isFocused) => {
 			if (isFocused && normalizedExecuteWhen.value) {
-				refetch()
+				execute()
 			}
 		})
 	}
-	// refetch on document visibility
+	// execute on document visibility
 	if (autoExecuteOnDocumentVisibility) {
 		const visibility = useDocumentVisibility()
 		documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
 			if (visibilityState === 'visible' && normalizedExecuteWhen.value) {
-				refetch()
+				execute()
 			}
 		})
 	}
 	const stop = () => {
 		status.value = StoreRepositoryStatus.idle
 		stopHandler?.()
-		refetchOnFocunsStopHandler?.()
+		executeOnFocunsStopHandler?.()
 		documentVisibilityStopHandler?.()
 	}
 	return { stop, ignoreUpdates }
 }
 
-export function initResubmitHandlers<Type>(
+export function initAutoExecuteSubmitHandlers<Type>(
 	item: Ref<Type | undefined> | Type,
 	params: Ref<ParamMap> | ParamMap,
 	resubmit: (
@@ -152,7 +155,7 @@ export function initResubmitHandlers<Type>(
 	} = options
 	let ignoreUpdates: IgnoredUpdater | undefined = (cb: () => void) => cb()
 	let stopHandler: WatchStopHandle | undefined
-	let refetchOnFocunsStopHandler: WatchStopHandle | undefined
+	let executeOnFocunsStopHandler: WatchStopHandle | undefined
 	let documentVisibilityStopHandler: WatchStopHandle | undefined
 	const normalizedItem = isRef(item) ? item : computed(() => item)
 	const normalizedParams = isRef(params)
@@ -173,7 +176,6 @@ export function initResubmitHandlers<Type>(
 				},
 				{
 					eventFilter: debounceFilter(autoExecuteDebounce),
-					immediate,
 					deep: true,
 				},
 			)
@@ -190,7 +192,6 @@ export function initResubmitHandlers<Type>(
 				},
 				{
 					eventFilter: debounceFilter(autoExecuteDebounce),
-					immediate,
 					deep: true,
 				},
 			)
@@ -198,16 +199,20 @@ export function initResubmitHandlers<Type>(
 		stopHandler = watchStopHandler
 	}
 
-	// refetch on window focus
+	if (immediate && normalizedExecuteWhen.value) {
+		resubmit(unref(item), unref(params))
+	}
+
+	// execute on window focus
 	if (autoExecuteOnWindowFocus) {
 		const focused = useWindowFocus()
-		refetchOnFocunsStopHandler = watch(focused, (isFocused) => {
+		executeOnFocunsStopHandler = watch(focused, (isFocused) => {
 			if (isFocused && normalizedExecuteWhen.value) {
 				resubmit()
 			}
 		})
 	}
-	// refetch on document visibility
+	// execute on document visibility
 	if (autoExecuteOnDocumentVisibility) {
 		const visibility = useDocumentVisibility()
 		documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
@@ -219,7 +224,7 @@ export function initResubmitHandlers<Type>(
 	const stop = () => {
 		status.value = StoreRepositoryStatus.idle
 		stopHandler?.()
-		refetchOnFocunsStopHandler?.()
+		executeOnFocunsStopHandler?.()
 		documentVisibilityStopHandler?.()
 	}
 	return { stop, ignoreUpdates }

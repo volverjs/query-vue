@@ -51,7 +51,7 @@ describe('Read', () => {
 		expect(getItemByKey('12345').value.id).toBe('12345')
 	})
 
-	it('Read cached values and force refetch', async () => {
+	it('Read cached values and force execute', async () => {
 		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
@@ -228,7 +228,7 @@ describe('Read', () => {
 		})
 		const useStoreReposotory = defineStoreRepository<Entity>(
 			repositoryHttp,
-			'read-refetch',
+			'read-execute',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
 		const { isLoading, isSuccess, data, item, execute } = read({
