@@ -398,7 +398,7 @@ import type { HttpClientRequestOptions } from '@volverjs/data'
 interface REMOVE_OPTIONS {
   params: { [key: string]: unknown } // must contain the `keyProperty`("id" by default)
   options?: HttpClientRequestOptions // ref to https://github.com/volverjs/data/blob/bb06d1ac3f78773c12bd10a2c6d9ba3a925a8be0/src/HttpClient.ts#L26
-}
+} // ref to https://github.com/volverjs/data/blob/bb06d1ac3f78773c12bd10a2c6d9ba3a925a8be0/src/RepositoryHttp.ts#L188
 ```
 
 ## Acknoledgements
