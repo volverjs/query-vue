@@ -343,6 +343,64 @@ const { data } = read(parameters, {
 })
 ```
 
+## Remove
+
+In a component you can use the `useUsersStore` composable to access the store repository actions and delete data from the repository:
+
+```vue
+<script setup lang="ts">
+  import { useUsersStore } from './user-store'
+
+  const { remove } = useUsersStore()
+  /*
+   * `remove()` execute a
+   * DELETE request to https://my-domain.com/users
+   */
+  const { isLoading, isError, isSuccess, error, status } = remove({
+    id: '123-321' // "id" or other "keyProperty" field
+  })
+</script>
+
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <div v-else-if="isError">An error occurred! 😭</div>
+  <div v-else-if="isSuccess">
+    <h1>Delete success!</h1>
+  </div>
+</template>
+```
+
+`remove({ [keyProperty]: '....' })` returns an object that contains:
+
+```ts
+const {
+  // Reactive boolean that indicates if the request is loading
+  isLoading,
+  // Reactive boolean that indicates if the request has failed
+  isError,
+  // Reactive boolean that indicates if the request has succeeded
+  isSuccess,
+  // Reactive error object
+  error,
+  // Reactive status of the request
+  status
+  // Reactive query object
+} = remove({ [keyProperty]: '....' })
+```
+
+### Parameters
+
+`remove()` accepts:
+
+```ts
+import type { HttpClientRequestOptions } from '@volverjs/data'
+
+interface REMOVE_OPTIONS {
+  params: { [key: string]: unknown } // must contain the `keyProperty`("id" by default)
+  options?: HttpClientRequestOptions // ref to https://github.com/volverjs/data/blob/bb06d1ac3f78773c12bd10a2c6d9ba3a925a8be0/src/HttpClient.ts#L26
+} // ref to https://github.com/volverjs/data/blob/bb06d1ac3f78773c12bd10a2c6d9ba3a925a8be0/src/RepositoryHttp.ts#L188
+```
+
 ## Acknoledgements
 
 `@volverjs/query-vue` is inspired by [`React Query`](https://react-query-v3.tanstack.com/).
