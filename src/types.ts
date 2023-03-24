@@ -3,6 +3,14 @@ import { type Ref } from 'vue'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ParamMap = Record<string, any>
 
+export type StoreRepositoryOptions<Type> = {
+	keyProperty?: keyof Type
+	defaultPersistence?: number
+	defaultDebounce?: number | Ref<number>
+	hashFunction?: (str: string) => number
+	cleanUpEvery?: number
+}
+
 export type StoreRepositoryHash = {
 	keys?: unknown[]
 	data?: unknown[]
@@ -20,23 +28,24 @@ export type StoreRepositoryQuery = {
 export type StoreRepositoryReadOptions = {
 	name?: string
 	group?: boolean
+	directory?: boolean
 	keepAlive?: boolean
 	immediate?: boolean
 	persistence?: number
-	refetchOnWindowFocus?: boolean
-	refetchOnDocumentVisibility?: boolean
-	directory?: boolean
-	when?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	autoExecute?: boolean
+	autoExecuteDebounce?: number | Ref<number>
+	autoExecuteOnWindowFocus?: boolean
+	autoExecuteOnDocumentVisibility?: boolean
 }
 
 export type StoreRepositorySubmitOptions = {
 	name?: string
-	group?: boolean
 	keepAlive?: boolean
 	immediate?: boolean
-	autoSubmit?: boolean
-	autoSubmitThrottle?: number
-	autoSubmitOnWindowFocus?: boolean
-	autoSubmitOnDocumentVisibility?: boolean
-	when?: Ref<boolean> | ((newItem?: unknown, params?: ParamMap) => boolean)
+	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	autoExecute?: boolean
+	autoExecuteDebounce?: number | Ref<number>
+	autoExecuteOnWindowFocus?: boolean
+	autoExecuteOnDocumentVisibility?: boolean
 }

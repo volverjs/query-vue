@@ -1,56 +1,31 @@
-import {
-	type Ref,
-	type WatchStopHandle,
-	computed,
-	isRef,
-	ref,
-	unref,
-	watch,
-	watchEffect,
-} from 'vue'
-import {
-	type IgnoredUpdater,
-	throttleFilter,
-	useWindowFocus,
-	useDocumentVisibility,
-	watchIgnorable,
-	useIdle,
-	tryOnBeforeUnmount,
-} from '@vueuse/core'
+import { type Ref, computed, isRef, ref, unref, watch } from 'vue'
+import { useIdle, tryOnBeforeUnmount } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { type Repository, Hash } from '@volverjs/data'
+import { Hash } from '@volverjs/data/hash'
+import type { HttpClientRequestOptions, Repository } from '@volverjs/data'
 import type {
 	ParamMap,
 	StoreRepositoryHash,
+	StoreRepositoryOptions,
 	StoreRepositoryQuery,
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
 } from './types'
-
-export const StoreRepositoryStatus = {
-	loading: 'loading',
-	error: 'error',
-	success: 'success',
-	idle: 'idle',
-} as const
-
-export type StoreRepositoryStatus =
-	(typeof StoreRepositoryStatus)[keyof typeof StoreRepositoryStatus]
+import { StoreRepositoryStatus } from './constants'
+import {
+	initStatus,
+	initAutoExecuteReadHandlers,
+	initAutoExecuteSubmitHandlers,
+} from './utilities'
 
 export const defineStoreRepository = <Type>(
-	name: string,
 	repository: Repository<Type>,
-	options: {
-		keyProperty?: keyof Type
-		defaultPersistence?: number
-		defaultThrottle?: number
-		hashFunction?: (str: string) => number
-		cleanUpEvery?: number
-	} = {},
+	name: string,
+	options: StoreRepositoryOptions<Type> = {},
 ) => {
 	const keyProperty = options.keyProperty ?? ('id' as keyof Type)
 	const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
-	const defaultThrottle = options.defaultThrottle ?? 500
+	const defaultDebounce = options.defaultDebounce ?? 0
 	const hashFunction = options.hashFunction ?? Hash.cyrb53
 	const cleanUpEvery = options.cleanUpEvery ?? 3 * 1000
 
@@ -62,206 +37,6 @@ export const defineStoreRepository = <Type>(
 		return `${prefix ? `${prefix}-` : ''}${hashFunction(
 			JSON.stringify(unref(params)),
 		)}`
-	}
-
-	function initStatus() {
-		const status = ref<StoreRepositoryStatus>(StoreRepositoryStatus.idle)
-		const isLoading = computed(
-			() => status.value === StoreRepositoryStatus.loading,
-		)
-		const isError = computed(
-			() => status.value === StoreRepositoryStatus.error,
-		)
-		const isSuccess = computed(
-			() => status.value === StoreRepositoryStatus.success,
-		)
-		const error = ref<Error | null>(null)
-		watchEffect(() => {
-			if (status.value === StoreRepositoryStatus.loading) {
-				error.value = null
-			}
-		})
-		return { status, isLoading, isError, isSuccess, error }
-	}
-
-	function initRefetchHandlers(
-		params: Ref<ParamMap> | ParamMap,
-		refetch: (
-			newValue?: ParamMap,
-			oldValue?: ParamMap,
-			onCleanup?: (cleanupFn: () => void) => void,
-		) => void,
-		status: Ref<StoreRepositoryStatus>,
-		options: StoreRepositoryReadOptions = {},
-	) {
-		const {
-			immediate = true,
-			refetchOnWindowFocus = false,
-			refetchOnDocumentVisibility = false,
-			when = () => true,
-		} = options
-		// watch params and refetch
-		let stopHandler: WatchStopHandle | undefined
-		let refetchOnFocunsStopHandler: WatchStopHandle | undefined
-		let documentVisibilityStopHandler: WatchStopHandle | undefined
-		if (isRef(params)) {
-			if (!isRef(when)) {
-				stopHandler = watch(
-					params,
-					(newValue, oldValue, onCleanup) => {
-						if (when(newValue as ParamMap)) {
-							refetch(
-								params,
-								oldValue as ParamMap | undefined,
-								onCleanup,
-							)
-						}
-					},
-					{
-						immediate,
-						deep: true,
-					},
-				)
-			} else {
-				stopHandler = watch<ParamMap, boolean>(
-					[params, when],
-					(newValue, oldValue, onCleanup) => {
-						if (newValue[1]) {
-							refetch(newValue[0], oldValue?.[0], onCleanup)
-						}
-					},
-					{
-						immediate,
-						deep: true,
-					},
-				)
-			}
-		} else {
-			if (!isRef(when)) {
-				if (when(params) && immediate) {
-					refetch(params)
-				}
-			} else {
-				stopHandler = watch(
-					when,
-					(newValue, oldValue, onCleanup) => {
-						if (newValue) {
-							return refetch(params, undefined, onCleanup)
-						}
-					},
-					{
-						immediate,
-						deep: true,
-					},
-				)
-			}
-		}
-		// refetch on window focus
-		if (refetchOnWindowFocus) {
-			const focused = useWindowFocus()
-			refetchOnFocunsStopHandler = watch(focused, (isFocused) => {
-				if (isFocused) {
-					if (
-						(isRef(when) && when.value) ||
-						(!isRef(when) && when(unref(params)))
-					) {
-						refetch()
-					}
-				}
-			})
-		}
-		// refetch on document visibility
-		if (refetchOnDocumentVisibility) {
-			const visibility = useDocumentVisibility()
-			documentVisibilityStopHandler = watch(
-				visibility,
-				(visibilityState) => {
-					if (
-						visibilityState === 'visible' &&
-						((isRef(when) && when.value) ||
-							(!isRef(when) && when(unref(params))))
-					) {
-						refetch()
-					}
-				},
-			)
-		}
-		const stop = () => {
-			status.value = StoreRepositoryStatus.idle
-			stopHandler?.()
-			refetchOnFocunsStopHandler?.()
-			documentVisibilityStopHandler?.()
-		}
-		return { stop }
-	}
-
-	function initResubmitHandlers(
-		item: Ref<Type | undefined> | Type,
-		params: Ref<ParamMap> | ParamMap,
-		resubmit: (
-			item?: Type,
-			params?: ParamMap,
-			cleanUp?: (cleanupFn: () => void) => void,
-		) => void,
-		status: Ref<StoreRepositoryStatus>,
-		options: StoreRepositorySubmitOptions = {},
-	) {
-		const {
-			immediate = true,
-			autoSubmit = false,
-			autoSubmitThrottle = defaultThrottle,
-			autoSubmitOnWindowFocus = false,
-			autoSubmitOnDocumentVisibility = false,
-		} = options
-		// watch params and refetch
-		let stop: WatchStopHandle | undefined
-		let ignoreUpdates: IgnoredUpdater | undefined = (cb: () => void) => cb()
-		if (autoSubmit && isRef(item)) {
-			const { stop: stopHandler, ignoreUpdates: ignoreUpdatesHandler } =
-				watchIgnorable(
-					item,
-					async (
-						newValue: Type | undefined,
-						oldValue: Type | undefined,
-						cleanUp,
-					) => {
-						if (newValue) {
-							await resubmit(newValue, unref(params), cleanUp)
-						}
-					},
-					{
-						eventFilter: throttleFilter(autoSubmitThrottle),
-						immediate,
-						deep: true,
-					},
-				)
-			ignoreUpdates = ignoreUpdatesHandler
-			stop = () => {
-				status.value = StoreRepositoryStatus.idle
-				return stopHandler()
-			}
-		} else if (immediate) {
-			resubmit()
-		}
-		// refetch on window focus
-		if (autoSubmitOnWindowFocus) {
-			const focused = useWindowFocus()
-			watch(focused, (isFocused) => {
-				if (!isFocused) {
-					resubmit()
-				}
-			})
-		}
-		// refetch on document visibility
-		if (autoSubmitOnDocumentVisibility) {
-			const visibility = useDocumentVisibility()
-			watch(visibility, (visibilityState) => {
-				if (visibilityState !== 'visible') {
-					resubmit()
-				}
-			})
-		}
-		return { stop, ignoreUpdates }
 	}
 
 	return defineStore(name, () => {
@@ -350,10 +125,10 @@ export const defineStoreRepository = <Type>(
 				return undefined
 			})
 
-		function hasHash(
+		const hasHash = (
 			hash: string,
 			options?: StoreRepositoryReadOptions,
-		): boolean {
+		): boolean => {
 			const persistence = options?.persistence ?? defaultPersistence
 			// get store hash
 			const storeHash = storeHashes.value.get(hash)
@@ -475,7 +250,7 @@ export const defineStoreRepository = <Type>(
 			const storeQuery = getQueryByName(storeQueryName)
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
-			const refetch = async (
+			const execute = async (
 				newParams?: ParamMap,
 				oldParams?: ParamMap,
 				onCleanup?: (cleanupFn: () => void) => void,
@@ -557,11 +332,15 @@ export const defineStoreRepository = <Type>(
 					return { error: error.value, status: status.value }
 				}
 			}
-			const { stop } = initRefetchHandlers(
+			const { stop, ignoreUpdates } = initAutoExecuteReadHandlers(
 				params,
-				refetch,
+				execute,
 				status,
-				options,
+				{
+					...options,
+					autoExecuteDebounce:
+						options?.autoExecuteDebounce ?? defaultDebounce,
+				},
 			)
 			const cleanup = () => {
 				if (!options?.keepAlive) {
@@ -578,12 +357,13 @@ export const defineStoreRepository = <Type>(
 				isSuccess,
 				status,
 				error,
-				refetch,
-				stop,
 				query: storeQuery,
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
 				metadata: computed(() => storeQuery.value?.metadata),
+				execute,
+				stop,
+				ignoreUpdates,
 				cleanup,
 			}
 		}
@@ -598,7 +378,7 @@ export const defineStoreRepository = <Type>(
 			const storeQuery = getQueryByName(storeQueryName)
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
-			const resubmit = async (
+			const execute = async (
 				newItem?: Type,
 				newParams?: ParamMap,
 				onCleanup?: (cleanupFn: () => void) => void,
@@ -611,17 +391,6 @@ export const defineStoreRepository = <Type>(
 						!newParams[keyProperty as string]
 					) {
 						newParams[keyProperty as string] = newItem[keyProperty]
-					}
-					if (options?.when) {
-						if (isRef(options.when)) {
-							if (!unref(options.when)) {
-								return
-							}
-						} else {
-							if (!options.when(newItem, newParams)) {
-								return
-							}
-						}
 					}
 					const hash = paramsToHash(newParams)
 					status.value = StoreRepositoryStatus.loading
@@ -658,7 +427,6 @@ export const defineStoreRepository = <Type>(
 							keys: [data[keyProperty]],
 							params,
 							metadata,
-							group: options?.group,
 						})
 						const key = data[keyProperty]
 						if (key) {
@@ -682,12 +450,16 @@ export const defineStoreRepository = <Type>(
 					}
 				}
 			}
-			const { stop, ignoreUpdates } = initResubmitHandlers(
+			const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<Type>(
 				item,
 				params,
-				resubmit,
+				execute,
 				status,
-				options,
+				{
+					...options,
+					autoExecuteDebounce:
+						options?.autoExecuteDebounce ?? defaultDebounce,
+				},
 			)
 			const cleanup = () => {
 				if (!options?.keepAlive) {
@@ -704,14 +476,72 @@ export const defineStoreRepository = <Type>(
 				isSuccess,
 				status,
 				error,
-				resubmit,
-				stop,
-				ignoreUpdates,
 				query: storeQuery,
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
 				metadata: computed(() => storeQuery.value?.metadata),
+				execute,
+				stop,
+				ignoreUpdates,
 				cleanup,
+			}
+		}
+
+		const remove = (
+			params: ParamMap,
+			options?: HttpClientRequestOptions,
+		) => {
+			const { status, isLoading, isError, isSuccess, error } =
+				initStatus()
+
+			// first check keyProperty exist on params
+			if (!(keyProperty in params)) {
+				status.value = StoreRepositoryStatus.error
+				error.value = new Error(
+					`remove: params must contain a ${String(
+						keyProperty,
+					)} property`,
+				)
+				return { error, status }
+			}
+
+			const execute = async () => {
+				status.value = StoreRepositoryStatus.loading
+				const { response } = repository.delete(params, options)
+
+				try {
+					const { aborted } = await response
+
+					if (aborted) {
+						status.value = StoreRepositoryStatus.idle
+						return
+					}
+
+					status.value = StoreRepositoryStatus.success
+
+					if (Array.isArray(params[keyProperty as string])) {
+						params[keyProperty as string].forEach((key: string) => {
+							storeItems.value.delete(key)
+						})
+					} else {
+						storeItems.value.delete(params[keyProperty as string])
+					}
+					return
+				} catch (err) {
+					status.value = StoreRepositoryStatus.error
+					error.value = err as Error
+					return
+				}
+			}
+
+			execute()
+
+			return {
+				isLoading,
+				isError,
+				isSuccess,
+				error,
+				status,
 			}
 		}
 
@@ -721,6 +551,7 @@ export const defineStoreRepository = <Type>(
 			hashes: storeHashes,
 			read,
 			submit,
+			remove,
 			getQueryByName,
 			getItemByKey,
 			getItemsByKeys,
