@@ -265,6 +265,10 @@ export const defineStoreRepository = <Type>(
 						return {
 							data: storeQuery.value?.data,
 							status: status.value,
+							error,
+							isSuccess,
+							isError,
+							isLoading
 						}
 					}
 				}
@@ -502,7 +506,13 @@ export const defineStoreRepository = <Type>(
 						keyProperty,
 					)} property`,
 				)
-				return { error, status }
+				return {
+					error,
+					status,
+					isSuccess,
+					isLoading,
+					isError,
+				}
 			}
 
 			const execute = async () => {
