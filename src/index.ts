@@ -262,13 +262,15 @@ export const defineStoreRepository = <Type>(
 							group: options?.group,
 						})
 						status.value = StoreRepositoryStatus.success
+						error.value = null
 						return {
+							query: storeQuery.value,
 							data: storeQuery.value?.data,
+							metadata: storeQuery.value?.metadata,
 							status: status.value,
-							error,
-							isSuccess,
-							isError,
-							isLoading
+							error: error.value,
+							isSuccess: isSuccess.value,
+							isError: isError.value,
 						}
 					}
 				}
@@ -329,11 +331,18 @@ export const defineStoreRepository = <Type>(
 						})
 					}
 					status.value = StoreRepositoryStatus.success
-					return { data, metadata, status: status.value }
 				} catch (err) {
 					status.value = StoreRepositoryStatus.error
 					error.value = err as Error
-					return { error: error.value, status: status.value }
+				}
+				return {
+					query: storeQuery.value,
+					data: storeQuery.value?.data,
+					metadata: storeQuery.value?.metadata,
+					status: status.value,
+					error: error.value,
+					isSuccess: isSuccess.value,
+					isError: isError.value,
 				}
 			}
 			const { stop, ignoreUpdates } = initAutoExecuteReadHandlers(
@@ -453,6 +462,15 @@ export const defineStoreRepository = <Type>(
 						error.value = err as Error
 					}
 				}
+				return {
+					query: storeQuery.value,
+					data: storeQuery.value?.data,
+					metadata: storeQuery.value?.metadata,
+					status: status.value,
+					error: error.value,
+					isSuccess: isSuccess.value,
+					isError: isError.value,
+				}
 			}
 			const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<Type>(
 				item,
@@ -498,54 +516,43 @@ export const defineStoreRepository = <Type>(
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
 
-			// first check keyProperty exist on params
-			if (!(keyProperty in params)) {
-				status.value = StoreRepositoryStatus.error
-				error.value = new Error(
-					`remove: params must contain a ${String(
-						keyProperty,
-					)} property`,
-				)
-				return {
-					error,
-					status,
-					isSuccess,
-					isLoading,
-					isError,
-				}
-			}
-
 			const execute = async () => {
 				status.value = StoreRepositoryStatus.loading
 				const { response } = repository.delete(params, options)
 
+				// check if keyProperty exists in params
+				if (!(keyProperty in params)) {
+					status.value = StoreRepositoryStatus.error
+					error.value = new Error(
+						`remove: params must contain a ${String(
+							keyProperty,
+						)} property`,
+					)
+					return
+				}
 				try {
 					const { aborted } = await response
-
 					if (aborted) {
 						status.value = StoreRepositoryStatus.idle
 						return
 					}
-
 					status.value = StoreRepositoryStatus.success
-
-					if (Array.isArray(params[keyProperty as string])) {
-						params[keyProperty as string].forEach((key: string) => {
-							storeItems.value.delete(key)
-						})
-					} else {
-						storeItems.value.delete(params[keyProperty as string])
-					}
-					return
+					const keysToRemove = Array.isArray(
+						params[keyProperty as string],
+					)
+						? params[keyProperty as string]
+						: [params[keyProperty as string]]
+					// remove keys from store
+					keysToRemove.forEach((key: string) => {
+						storeItems.value.delete(key)
+					})
 				} catch (err) {
 					status.value = StoreRepositoryStatus.error
 					error.value = err as Error
-					return
 				}
 			}
-
+			// execute immediately
 			execute()
-
 			return {
 				isLoading,
 				isError,

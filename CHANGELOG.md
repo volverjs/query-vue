@@ -2,20 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.3] - 2023-03-27
+
+### Fix
+
+- The `execute()` function has the same output in the `read` and `submit` actions.
+
 ## [0.0.2] - 2023-03-24
 
 ### Added
 
-- `remove` action
-- `remove` test
+- `remove()` action and tests.
 
 ### Change
 
-- `refetch` to `execute`
+- `refetch()` to `execute()`.
 
 ### Fix
 
-- `immediate` not use debounce timeout
+- `immediate` not use debounce timeout.
 
 ## 0.0.1 - 2023-03-21
 
@@ -25,4 +30,5 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[0.0.3]: https://github.com/volverjs/query-vue/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/volverjs/query-vue/compare/v0.0.1...v0.0.2
