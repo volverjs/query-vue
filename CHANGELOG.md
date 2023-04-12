@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2023-04-12
+
+### Added
+
+- Doc example with `useRepositoryHttp()`
+
+### Change
+
+- Use new `@volverjs/data` version `1.0.0`
+
 ## [0.0.3] - 2023-03-27
 
 ### Fix
@@ -30,5 +40,6 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[1.0.0]: https://github.com/volverjs/query-vue/compare/v0.0.3...v1.0.0
 [0.0.3]: https://github.com/volverjs/query-vue/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/volverjs/query-vue/compare/v0.0.1...v0.0.2

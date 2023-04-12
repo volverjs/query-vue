@@ -39,26 +39,26 @@
         "*.d.ts"
     ],
     "dependencies": {
-        "@volverjs/data": "^0.0.3",
+        "@volverjs/data": "1.0.0-beta.4",
         "@vueuse/core": "^9.13.0",
         "pinia": "^2.0.33",
         "vue": "^3.2.47"
     },
     "devDependencies": {
         "@pinia/testing": "^0.0.15",
-        "@typescript-eslint/eslint-plugin": "^5.56.0",
-        "@typescript-eslint/parser": "^5.56.0",
+        "@typescript-eslint/eslint-plugin": "^5.57.1",
+        "@typescript-eslint/parser": "^5.57.1",
         "@vue/test-utils": "^2.3.2",
         "copy": "^0.3.2",
-        "eslint": "^8.36.0",
+        "eslint": "^8.37.0",
         "eslint-config-prettier": "^8.8.0",
         "eslint-plugin-prettier": "^4.2.1",
         "happy-dom": "^8.9.0",
         "prettier": "^2.8.7",
-        "typescript": "^5.0.2",
+        "typescript": "^5.0.3",
         "vite": "^4.2.1",
         "vite-plugin-eslint": "^1.8.1",
-        "vitest": "^0.29.7",
+        "vitest": "^0.29.8",
         "vitest-fetch-mock": "^0.2.2",
         "vue-tsc": "^1.2.0"
     },

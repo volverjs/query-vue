@@ -67,7 +67,7 @@ export function initAutoExecuteReadHandlers(
 		: computed<ParamMap>(() => params)
 	const normalizedExecuteWhen = isRef(executeWhen)
 		? executeWhen
-		: computed(() => executeWhen(unref(params)))
+		: computed(() => executeWhen(unref(params) as ParamMap))
 	// execute on params  change
 	if (autoExecute) {
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
@@ -91,7 +91,7 @@ export function initAutoExecuteReadHandlers(
 				normalizedExecuteWhen,
 				(newWhen, oldWhen, onCleanup) => {
 					if (newWhen && !oldWhen) {
-						execute(unref(params), undefined, onCleanup)
+						execute(unref(params) as ParamMap, undefined, onCleanup)
 					}
 				},
 				{
@@ -104,7 +104,7 @@ export function initAutoExecuteReadHandlers(
 	}
 
 	if (immediate && normalizedExecuteWhen.value) {
-		execute(unref(params))
+		execute(unref(params) as ParamMap)
 	}
 
 	// execute on window focus
@@ -163,7 +163,7 @@ export function initAutoExecuteSubmitHandlers<Type>(
 		: computed(() => params)
 	const normalizedExecuteWhen = isRef(executeWhen)
 		? executeWhen
-		: computed(() => executeWhen(unref(params)))
+		: computed(() => executeWhen(unref(params) as ParamMap))
 	// auto-submit on item or params change
 	if (autoExecute) {
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
@@ -187,7 +187,11 @@ export function initAutoExecuteSubmitHandlers<Type>(
 				normalizedExecuteWhen,
 				(newWhen, oldWhen, onCleanup) => {
 					if (newWhen && !oldWhen) {
-						resubmit(unref(item), unref(params), onCleanup)
+						resubmit(
+							unref(item),
+							unref(params) as ParamMap,
+							onCleanup,
+						)
 					}
 				},
 				{
@@ -200,7 +204,7 @@ export function initAutoExecuteSubmitHandlers<Type>(
 	}
 
 	if (immediate && normalizedExecuteWhen.value) {
-		resubmit(unref(item), unref(params))
+		resubmit(unref(item), unref(params) as ParamMap)
 	}
 
 	// execute on window focus
