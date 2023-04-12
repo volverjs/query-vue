@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@volverjs/data':
-    specifier: 1.0.0-beta.4
-    version: 1.0.0-beta.4
+    specifier: 1.0.0-beta.6
+    version: 1.0.0-beta.6
   '@vueuse/core':
     specifier: ^9.13.0
     version: 9.13.0(vue@3.2.47)
@@ -622,8 +622,8 @@ packages:
       '@volar/vue-language-core': 1.2.0
     dev: true
 
-  /@volverjs/data@1.0.0-beta.4:
-    resolution: {integrity: sha512-SSVh9kI5j+Z1EzFaw5O3p4515xS0aNeXhrFQRSThlw9SNOCqrXXZqYMzKh9ubvVaYmaz93giJ9uDN9KcTvfI+g==}
+  /@volverjs/data@1.0.0-beta.6:
+    resolution: {integrity: sha512-NrfaevUAH9w9IEP7O5tsADFQv7PA4ha464AyGtXWMblHwuifhqxi6g9fYAsoG+0491N7/DDUXrx5llRgNl0uUg==}
     engines: {node: '>= 16.x'}
     dependencies:
       abort-controller: 3.0.0
