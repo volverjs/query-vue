@@ -285,14 +285,14 @@ export const defineStoreRepository = <Type>(
 				}
 				const hash = paramsToHash(newParams, options)
 				status.value = StoreRepositoryStatus.loading
-				const { response, abort } = repository.read(newParams, {
+				const { responsePromise, abort } = repository.read(newParams, {
 					key: hash,
 				})
 				if (abort && onCleanup) {
 					onCleanup(abort)
 				}
 				try {
-					const { data, metadata, aborted } = await response
+					const { data, metadata, aborted } = await responsePromise
 					if (aborted) {
 						status.value = StoreRepositoryStatus.idle
 						return { status: status.value, aborted }
@@ -407,15 +407,16 @@ export const defineStoreRepository = <Type>(
 					}
 					const hash = paramsToHash(newParams)
 					status.value = StoreRepositoryStatus.loading
-					const { response, abort } = newItem[keyProperty]
-						? repository.update(newParams, newItem, options)
-						: repository.create(newParams, newItem, options)
+					const { responsePromise, abort } = newItem[keyProperty]
+						? repository.update(newItem, newParams, options)
+						: repository.create(newItem, newParams, options)
 
 					if (abort && onCleanup) {
 						onCleanup(abort)
 					}
 					try {
-						const { data, metadata, aborted } = await response
+						const { data, metadata, aborted } =
+							await responsePromise
 						if (aborted) {
 							status.value = StoreRepositoryStatus.idle
 							return
@@ -518,7 +519,7 @@ export const defineStoreRepository = <Type>(
 
 			const execute = async () => {
 				status.value = StoreRepositoryStatus.loading
-				const { response } = repository.delete(params, options)
+				const { responsePromise } = repository.remove(params, options)
 
 				// check if keyProperty exists in params
 				if (!(keyProperty in params)) {
@@ -531,7 +532,7 @@ export const defineStoreRepository = <Type>(
 					return
 				}
 				try {
-					const { aborted } = await response
+					const { aborted } = await responsePromise
 					if (aborted) {
 						status.value = StoreRepositoryStatus.idle
 						return

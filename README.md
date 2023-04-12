@@ -41,6 +41,8 @@ Following examples are based on a simple `RepositoryHttp` instance, but you can 
 
 First of all, you need to [initialize `pinia`](https://pinia.vuejs.org/getting-started.html) in your application, then you can create using `defineStoreRepository` function:
 
+##### Example 1
+
 ```ts
 // user-store.ts
 import { defineStoreRepository } from '@volverjs/query-vue'
@@ -66,6 +68,42 @@ export const useUsersStore = defineStoreRepository<User>(
   // the pinia store name
   'users'
 )
+```
+
+##### Example 2
+
+Install HttpClientPlugin
+
+```ts
+import { createApp } from 'vue'
+import { createHttpClient } from '@volverjs/data/vue'
+import App from './App.vue'
+
+const app = createApp(App)
+const httpClient = createHttpClient({
+  prefixUrl: 'https://my.api.com'
+})
+
+app.use(httpClient, {
+  global: true // default: false
+})
+```
+
+Define store repository using global `httpClient` created on `HttpClientPlugin` installation:
+
+```ts
+// user-store.ts
+import { defineStoreRepository } from '@volverjs/query-vue'
+import { useRepositoryHttp } from '@volverjs/data/vue'
+
+/* Define an User type */
+type User = {
+  id: number
+  username: string
+}
+
+const { repository } = useRepositoryHttp('users/:id?')
+const useUsersStore = defineStoreRepository<User>(repository, 'users')
 ```
 
 ## Read
@@ -388,7 +426,7 @@ const {
 } = remove({ [keyProperty]: '....' })
 ```
 
-### Parameters
+##### Parameters
 
 `remove()` accepts:
 

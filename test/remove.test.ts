@@ -4,7 +4,6 @@ import createFetchMock from 'vitest-fetch-mock'
 import { describe, vi, beforeEach, it, expect } from 'vitest'
 import { defineStoreRepository } from '../src/index'
 import { RepositoryHttp, HttpClient } from '@volverjs/data'
-import { watch } from 'vue'
 
 const fetchMock = createFetchMock(vi)
 const httpClient = new HttpClient({
@@ -13,7 +12,7 @@ const httpClient = new HttpClient({
 type Entity = { id: string }
 const repositoryHttp = new RepositoryHttp<Entity>(httpClient, ':id?')
 
-describe('Read', () => {
+describe('Remove', () => {
 	// Mount app
 	mount(
 		{
