@@ -11,7 +11,7 @@ export default () => {
 		},
 		build: {
 			lib: {
-				name: '@volverjs/store-repository-pinia',
+				name: '@volverjs/query-vue',
 				entry: path.resolve(__dirname, 'src/index.ts'),
 				fileName: (format) => `index.${format}.js`,
 			},
@@ -28,6 +28,7 @@ export default () => {
 						vue: 'Vue',
 						pinia: 'pinia',
 						'@vueuse/core': 'VueUseCore',
+						'@volverjs/data/hash': 'VolverDataHash',
 					},
 				},
 			},

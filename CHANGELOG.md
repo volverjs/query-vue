@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2023-04-19
+
+### Fix
+
+- Read key check is not needed with directory structure.
+
 ## [1.0.0] - 2023-04-12
 
 ### Added
@@ -40,6 +46,7 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[1.0.1]: https://github.com/volverjs/query-vue/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/volverjs/query-vue/compare/v0.0.3...v1.0.0
 [0.0.3]: https://github.com/volverjs/query-vue/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/volverjs/query-vue/compare/v0.0.1...v0.0.2

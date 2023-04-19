@@ -304,7 +304,10 @@ export const defineStoreRepository = <Type>(
 						)
 						return { error: error.value, status: status.value }
 					}
-					if (!data.every((item) => item[keyProperty])) {
+					if (
+						!options?.directory &&
+						!data.every((item) => item[keyProperty])
+					) {
 						status.value = StoreRepositoryStatus.error
 						error.value = new Error(
 							`read: response must contain a ${String(
