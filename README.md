@@ -473,6 +473,7 @@ As `read()` also `submit()` can be executed later too with `immediate: false` op
 
 ```vue
 <script setup lang="ts">
+  import { ref } from 'vue'
   import { type User, useUsersStore } from './user-store'
 
   const user = ref<User>({
@@ -615,6 +616,7 @@ const {
 
 ```vue
 <script setup lang="ts">
+  import { ref } from 'vue'
   import { useUsersStore } from './user-store'
 
   const { SubmitProvider } = useUsersStore()
@@ -631,7 +633,12 @@ const {
     <div v-else>
       <h1>Create user</h1>
       <form @submit.prevent="execute()">
-        <input v-model="user.username" type="text" name="username" placeholder="Insert username" />
+        <input
+          v-model="user.username"
+          type="text"
+          name="username"
+          placeholder="Insert username"
+        />
         <button type="submit">Submit</button>
       </forml>
     </div>
@@ -680,7 +687,7 @@ By default `SubmitProvider` will not execute the `submit()` action immediately, 
     <div v-else-if="isError">An error occurred! 😭</div>
     <div v-else-if="isSuccess">Delete success! 🎉</div>
     <div v-else>
-      <button @click="execute()">Delete</button>
+      <button type="button" @click="execute()">Delete</button>
     </div>
   </RemoveProvider>
 </template>
