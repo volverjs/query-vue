@@ -39,7 +39,7 @@ npm install @volverjs/query-vue --save
 
 Following examples are based on a `RepositoryHttp` instance, but you can use any [`@volverjs/data`](https://github.com/volverjs/data) repository you want.
 
-First of all, you need to [initialize `pinia`](https://pinia.vuejs.org/getting-started.html) in your application, then you can create using `defineStoreRepository` function:
+First of all, you need to [initialize `pinia`](https://pinia.vuejs.org/getting-started.html) in your application, then you can create a store composable using `defineStoreRepository()`:
 
 ```ts
 // user-store.ts
@@ -104,31 +104,31 @@ In a component you can use the `useUsersStore()` composable to get store actions
 
 ```ts
 const {
-  // Reactive boolean that indicates if the request is loading
+  /* Reactive boolean that indicates if the request is loading */
   isLoading,
-  // Reactive boolean that indicates if the request has failed
+  /* Reactive boolean that indicates if the request has failed */
   isError,
-  // Reactive boolean that indicates if the request has succeeded
+  /* Reactive boolean that indicates if the request has succeeded */
   isSuccess,
-  // Reactive error object
+  /* Reactive error object */
   error,
-  // Reactive status of the request
+  /* Reactive status of the request */
   status,
-  // Reactive query object
+  /* Reactive query object */
   query,
-  // Reactive array of data returned by the repository
+  /* Reactive array of data returned by the repository */
   data,
-  // Reactive metadata object returned by the repository
+  /* Reactive metadata object returned by the repository */
   metadata,
-  // Reactive first item of the `data` array
+  /* Reactive first item of the `data` array */
   item,
-  // Function to execute the `read()` action
+  /* Function to execute the `read()` action */
   execute,
-  // Function to stop `autoExecute` option
+  /* Function to stop `autoExecute` option */
   stop,
-  // Function to ignore reactive parameters updates
+  /* Function to ignore reactive parameters updates */
   ignoreUpdates,
-  // Function to cleanup the store repository
+  /* Function to cleanup the store repository */
   cleanup
 } = read()
 ```
@@ -283,11 +283,11 @@ params.value.page = 1
 
 ```ts
 const {
-  //...
+  // ...
  } = read(
-  // The parameters map (default: undefined)
+  /* The parameters map (default: undefined) */
   params,
-  // The options object (default: undefined)
+  /* The options object (default: undefined) */
   {
   /*
    * The name of the query (default: undefined)
@@ -380,31 +380,31 @@ const {
 
 ```ts
 const {
-  // Reactive boolean that indicates if the request is loading
+  /* Reactive boolean that indicates if the request is loading */
   isLoading,
-  // Reactive boolean that indicates if the request has failed
+  /* Reactive boolean that indicates if the request has failed */
   isError,
-  // Reactive boolean that indicates if the request has succeeded
+  /* Reactive boolean that indicates if the request has succeeded */
   isSuccess,
-  // Reactive error object
+  /* Reactive error object */
   error,
-  // Reactive status of the request
+  /* Reactive status of the request */
   status,
-  // Reactive query object
+  /* Reactive query object */
   query,
-  // Reactive array of data returned by the repository
+  /* Reactive array of data returned by the repository */
   data,
-  // Reactive metadata object returned by the repository
+  /* Reactive metadata object returned by the repository */
   metadata,
-  // Reactive first item of the `data` array
+  /* Reactive first item of the `data` array */
   item,
-  // Function to execute the `submit()` action
+  /* Function to execute the `submit()` action */
   execute,
-  // Function to stop `autoExecute` option
+  /* Function to stop `autoExecute` option */
   stop,
-  // Function to ignore reactive parameters updates
+  /* Function to ignore reactive parameters updates */
   ignoreUpdates,
-  // Function to cleanup the store repository
+  /* Function to cleanup the store repository */
   cleanup
 } = submit()
 ```
@@ -417,11 +417,11 @@ const {
 const {
   // ...
 } = submit(
-  // The submit payload (required)
+  /* The submit payload (required) */
   payload,
-  // The parameters map (default: undefined)
+  /* The parameters map (default: undefined) */
   params,
-  // The options object (default: undefined)
+  /* The options object (default: undefined) */
   {
   /*
    * The name of the query (default: undefined)
@@ -514,7 +514,8 @@ As `read()` also `submit()` can be executed later too with `immediate: false` op
    * DELETE request to https://my-domain.com/users
    */
   const { isLoading, isError, isSuccess } = remove({
-    id: '123-321' // "id" or other "keyProperty" field
+    // "id" or other "keyProperty" field
+    id: '123-321'
   })
 </script>
 
@@ -529,20 +530,20 @@ As `read()` also `submit()` can be executed later too with `immediate: false` op
 
 ```ts
 const {
-  // Reactive boolean that indicates if the request is loading
+  /* Reactive boolean that indicates if the request is loading */
   isLoading,
-  // Reactive boolean that indicates if the request has failed
+  /* Reactive boolean that indicates if the request has failed */
   isError,
-  // Reactive boolean that indicates if the request has succeeded
+  /* Reactive boolean that indicates if the request has succeeded */
   isSuccess,
-  // Reactive error object
+  /* Reactive error object */
   error,
-  // Reactive status of the request
+  /* Reactive status of the request */
   status
-  // Function to execute the `remove()` action
+  /* Function to execute the `remove()` action */
   execute,
 } = remove({
-  id: '123-321' // "id" or other "keyProperty" field
+  // ...
 })
 ```
 
@@ -554,11 +555,11 @@ const {
 const {
   // ...
 } = remove(
-  //  The parameters map (required)
+  /* The parameters map (required) */
   params,
-  // The options object (default: undefined)
+  /* The options object (default: undefined) */
   {
-    // Execute the `remove()` action immediately (default: true)
+    /* Execute the `remove()` action immediately (default: true) */
     immediate: true
   }
 )
@@ -601,9 +602,9 @@ const {
 <template>
   <ReadProvider
     v-bind="{
-      // The parameters map (default: undefined)
+      /* The parameters map (default: undefined) */
       params,
-      // The `read()` options object (default: undefined)
+      /* The `read()` options object (default: undefined) */
       options
     }"
   />
@@ -652,11 +653,11 @@ const {
 <template>
   <SubmitProvider
     v-bind="{
-      // The payload (required)
+      /* The payload (required) */
       modelValue,
-      // The parameters map (default: undefined)
+      /* The parameters map (default: undefined) */
       params,
-      // The `submit()` options object (default: { immediate: false })
+      /* The `submit()` options object (default: { immediate: false }) */
       options
     }"
   />
@@ -699,9 +700,9 @@ By default `SubmitProvider` will not execute the `submit()` action immediately, 
 <template>
   <RemoveProvider
     v-bind="{
-      // The parameters map (required)
+      /* The parameters map (required) */
       params,
-      // The `remove()` options object (default: { immediate: false })
+      /* The `remove()` options object (default: { immediate: false }) */
       options
     }"
   />
