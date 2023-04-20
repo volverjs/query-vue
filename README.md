@@ -617,7 +617,7 @@ const {
 ```vue
 <script setup lang="ts">
   import { ref } from 'vue'
-  import { useUsersStore } from './user-store'
+  import { type User, useUsersStore } from './user-store'
 
   const { SubmitProvider } = useUsersStore()
   const user = ref<User>({
