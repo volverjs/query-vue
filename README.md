@@ -285,13 +285,9 @@ params.value.page = 1
 const {
   //...
  } = read(
-  /*
-   * The parameters map (default: undefined)
-   */
+  // The parameters map (default: undefined)
   params,
-  /*
-   * The options object
-   */
+  // The options object (default: undefined)
   {
   /*
    * The name of the query (default: undefined)
@@ -421,17 +417,11 @@ const {
 const {
   // ...
 } = submit(
-  /*
-   * The submit payload (is required)
-   */
+  // The submit payload (required)
   payload,
-  /*
-   * The parameters map (default: undefined)
-   */
+  // The parameters map (default: undefined)
   params,
-  /*
-   * The options object
-   */
+  // The options object (default: undefined)
   {
   /*
    * The name of the query (default: undefined)
@@ -563,17 +553,11 @@ const {
 const {
   // ...
 } = remove(
-  /*
-   * The parameters map (default: undefined)
-   */
+  //  The parameters map (required)
   params,
-  /*
-   * The options object
-   */
+  // The options object (default: undefined)
   {
-    /*
-     * Execute the `remove()` action immediately (default: true)
-     */
+    // Execute the `remove()` action immediately (default: true)
     immediate: true
   }
 )
