@@ -39,13 +39,17 @@ export type StoreRepositoryReadOptions = {
 	autoExecuteOnDocumentVisibility?: boolean
 }
 
-export type StoreRepositorySubmitOptions = {
+export type StoreRepositorySubmitOptions<Type> = {
 	name?: string
 	keepAlive?: boolean
 	immediate?: boolean
-	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	executeWhen?: Ref<boolean> | ((item?: Type, params?: ParamMap) => boolean)
 	autoExecute?: boolean
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
+}
+
+export type StoreRepositoryRemoveOptions = {
+	immediate?: boolean
 }

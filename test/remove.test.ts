@@ -1,9 +1,11 @@
+import { describe, vi, beforeEach, it, expect } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
 import createFetchMock from 'vitest-fetch-mock'
-import { describe, vi, beforeEach, it, expect } from 'vitest'
-import { defineStoreRepository } from '../src/index'
 import { RepositoryHttp, HttpClient } from '@volverjs/data'
+import { defineStoreRepository } from '../src/index'
+import RemoveProvider from './components/RemoveProvider.vue'
+import { nextTick } from 'vue'
 
 const fetchMock = createFetchMock(vi)
 const httpClient = new HttpClient({
@@ -29,6 +31,32 @@ describe('Remove', () => {
 	beforeEach(() => {
 		fetchMock.enableMocks()
 		fetchMock.resetMocks()
+	})
+
+	it('Remove from a parameters map with component provider', async () => {
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
+		const wrapper = mount(RemoveProvider, {
+			global: {
+				plugins: [createTestingPinia({ stubActions: false })],
+			},
+		})
+		expect(wrapper.find('div[data-test="loading"]').exists()).toBe(true)
+		await flushPromises()
+		await nextTick()
+		expect(wrapper.find('div[data-test="loading"]').exists()).toBe(false)
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
+		const removeButton = wrapper.find('button[data-test="remove-button"]')
+		expect(removeButton.exists()).toBe(true)
+		fetchMock.mockResponseOnce(undefined, {
+			status: 204,
+		})
+		removeButton.trigger('click')
+		await flushPromises()
+		const deleteRequest = fetchMock.mock.calls[1][0] as Request
+		expect(deleteRequest.url).toEqual('https://myapi.com/v1/12345')
+		expect(deleteRequest.method).toEqual('DELETE')
 	})
 
 	it('Remove from a parameters map', async () => {

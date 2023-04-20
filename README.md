@@ -37,11 +37,9 @@ npm install @volverjs/query-vue --save
 
 ## Getting started
 
-Following examples are based on a simple `RepositoryHttp` instance, but you can use any `@volverjs/data` repository you want.
+Following examples are based on a `RepositoryHttp` instance, but you can use any [`@volverjs/data`](https://github.com/volverjs/data) repository you want.
 
 First of all, you need to [initialize `pinia`](https://pinia.vuejs.org/getting-started.html) in your application, then you can create using `defineStoreRepository` function:
-
-##### Example 1
 
 ```ts
 // user-store.ts
@@ -49,8 +47,8 @@ import { defineStoreRepository } from '@volverjs/query-vue'
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
 
 /* Define an User type */
-type User = {
-  id: number
+export type User = {
+  id?: number
   username: string
 }
 
@@ -63,52 +61,18 @@ const httpClient = new HttpClient({
 const usersRepository = new RepositoryHttp<User>(httpClient, 'users/:id?')
 
 /* Create a store repository composable */
-export const useUsersStore = defineStoreRepository<User>(
+export const useUsersStore = defineStoreRepository(
   usersRepository,
-  // the pinia store name
+  // the store name
   'users'
 )
 ```
 
-##### Example 2
-
-Install HttpClientPlugin
-
-```ts
-import { createApp } from 'vue'
-import { createHttpClient } from '@volverjs/data/vue'
-import App from './App.vue'
-
-const app = createApp(App)
-const httpClient = createHttpClient({
-  prefixUrl: 'https://my.api.com'
-})
-
-app.use(httpClient, {
-  global: true // default: false
-})
-```
-
-Define store repository using global `httpClient` created on `HttpClientPlugin` installation:
-
-```ts
-// user-store.ts
-import { defineStoreRepository } from '@volverjs/query-vue'
-import { useRepositoryHttp } from '@volverjs/data/vue'
-
-/* Define an User type */
-type User = {
-  id: number
-  username: string
-}
-
-const { repository } = useRepositoryHttp('users/:id?')
-const useUsersStore = defineStoreRepository<User>(repository, 'users')
-```
+In a component you can use the `useUsersStore()` composable to get store actions and getters.
 
 ## Read
 
-In a component you can use the `useUsersStore` composable to access the store repository actions and getters and read data from the repository:
+`read()` action allow to read data from the repository:
 
 ```vue
 <script setup lang="ts">
@@ -116,7 +80,7 @@ In a component you can use the `useUsersStore` composable to access the store re
 
   const { read } = useUsersStore()
   /*
-   * `read()` automatically execute a
+   * With HttpRepository `read()` execute a
    * GET request to https://my-domain.com/users
    */
   const { data, isLoading, isError } = read()
@@ -171,7 +135,7 @@ const {
 
 ### Parameters
 
-`read()` accepts an optional parameters object that will be passed to the repository `read()` method:
+`read()` accepts an optional parameters map.
 
 ```ts
 const { data } = read({
@@ -179,7 +143,7 @@ const { data } = read({
 })
 ```
 
-Parameters can be reactive, `data` will be automatically updated on parameters change with `autoExecute` option:
+The parameters map can be reactive, `data` will be automatically updated on parameters change with `autoExecute` option:
 
 ```ts
 const parameters = ref({
@@ -197,7 +161,7 @@ parameters.value = {
 // `read()` will be re-executed
 ```
 
-`autoExecute` can be stopped with `stop()` method:
+`autoExecute` can be stopped with `stop()` function:
 
 ```ts
 const parameters = ref({
@@ -213,20 +177,20 @@ stop()
 // `read()` will not be re-executed
 ```
 
-A reactive parameters update can be ignored with `ignoreUpdates` method:
+A reactive parameters update can be ignored with `ignoreUpdates` function:
 
 ```ts
-const parameters = ref({
+const params = ref({
   page: 1
 })
-const { data, ignoreUpdates } = read(parameters, {
+const { data, ignoreUpdates } = read(params, {
   autoExecute: true
 })
 
 // ...
 
 ignoreUpdates(() => {
-  parameters.value = {
+  params.value = {
     page: 1,
     other: 'value'
   }
@@ -246,7 +210,7 @@ execute()
 // `read()` will be re-executed
 ```
 
-`execute()` accepts an optional parameters object that will be passed to the repository `read()` method:
+`execute()` accepts an optional parameters map that will override the current parameters:
 
 ```ts
 const { data, execute } = read()
@@ -257,7 +221,7 @@ execute({
   sort: 'name',
   order: 'asc'
 })
-// `read()` will be re-executed with the new parameters
+// `read()` will be re-executed with the given parameters
 ```
 
 A `read()` can be executed later with `immediate: false` option:
@@ -284,41 +248,51 @@ execute()
 A `read()` can be executed when a condition is met with `executeWhen` option:
 
 ```ts
-const parameters = ref({
+const params = ref({
   page: undefined
 })
-const { data, execute } = read(parameters, {
-  executeWhen: computed(() => parameters.value.page !== undefined)
+const { data, execute } = read(params, {
+  executeWhen: computed(() => params.value.page !== undefined)
 })
 
 // ...
 
-parameters.value.page = 1
+params.value.page = 1
 // `read()` will be executed
 ```
 
-`executeWhen` can also be function that receives the parameters and returns a boolean:
+`executeWhen` can also be function that receives the parameters and returns a `boolean`:
 
 ```ts
-const parameters = ref({
+const params = ref({
   page: undefined
 })
-const { data, execute } = read(parameters, {
+const { data, execute } = read(params, {
   executeWhen: (newParams) => newParams.page !== undefined
 })
 
 // ...
 
-parameters.value.page = 1
+params.value.page = 1
 // `read()` will be executed
 ```
 
 ### Options
 
-`read()` accepts an optional options object:
+`read()` accepts the following options:
 
 ```ts
-const { data } = read(parameters, {
+const {
+  //...
+ } = read(
+  /*
+   * The parameters map (default: undefined)
+   */
+  params,
+  /*
+   * The options object
+   */
+  {
   /*
    * The name of the query (default: undefined)
    * if not defined, the query name will be generated
@@ -381,9 +355,163 @@ const { data } = read(parameters, {
 })
 ```
 
+## Submit
+
+`submit()` action allow to create or update data from the repository. Generally, has the same behavior of `read()` action but requires a `payload` parameter.
+
+```vue
+<script setup lang="ts">
+  import { useUsersStore } from './user-store'
+
+  const { submit } = useUsersStore()
+  /*
+   * With HttpRepository `submit()` execute a
+   * POST request to https://my-domain.com/users
+   */
+  const { isLoading, isError, isSuccess } = submit({
+    username: 'john.doe'
+  })
+</script>
+
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <div v-else-if="isError">An error occurred! 😭</div>
+  <div v-else-if="isSuccess">Submit success! 🎉</div>
+</template>
+```
+
+`submit()` returns an object that contains:
+
+```ts
+const {
+  // Reactive boolean that indicates if the request is loading
+  isLoading,
+  // Reactive boolean that indicates if the request has failed
+  isError,
+  // Reactive boolean that indicates if the request has succeeded
+  isSuccess,
+  // Reactive error object
+  error,
+  // Reactive status of the request
+  status,
+  // Reactive query object
+  query,
+  // Reactive array of data returned by the repository
+  data,
+  // Reactive metadata object returned by the repository
+  metadata,
+  // Reactive first item of the `data` array
+  item,
+  // Function to execute the `submit()` action
+  execute,
+  // Function to stop `autoExecute` option
+  stop,
+  // Function to ignore reactive parameters updates
+  ignoreUpdates,
+  // Function to cleanup the store repository
+  cleanup
+} = submit()
+```
+
+### Options
+
+`submit()` accepts the following options:
+
+```ts
+const {
+  // ...
+} = submit(
+  /*
+   * The submit payload (is required)
+   */
+  payload,
+  /*
+   * The parameters map (default: undefined)
+   */
+  params,
+  /*
+   * The options object
+   */
+  {
+  /*
+   * The name of the query (default: undefined)
+   * if not defined, the query name will be generated
+   */
+  name: undefined,
+  /*
+   * Keep the query alive when
+   * the component is unmounted (default: false)
+   */
+  keepAlive: false,
+  /*
+   * Execute the `submit()` action immediately (default: true)
+   */
+  immediate: true,
+  /*
+   * A boolean reactive parameter (or a function) that indicates
+   * when the `submit()` action should be executed (default: undefined)
+   * For example:
+   * `executeWhen: (newPayload, newParams) => newParams.id !== undefined`
+   * Or:
+   * `executeWhen: computed(() => parameters.value.id !== undefined)`
+   */
+  executeWhen: undefined,
+  /*
+   * Automatically execute the `submit()` action
+   * on reactive parameters change (default: false)
+   */
+  autoExecute: false,
+  /*
+   * The query auto execute throttle
+   * in milliseconds (default: 0)
+   */
+  autoExecuteDebounce: 0
+  /*
+   * Automatically execute the `submit()` action
+   * on window focus (default: false)
+   */
+  autoExecuteOnWindowFocus: false,
+  /*
+   * Automatically execute the `submit()` action
+   * on document visibility change (default: false)
+   */
+  autoExecuteOnDocumentVisibility: false,
+})
+```
+
+As `read()` also `submit()` can be executed later too with `immediate: false` option:
+
+```vue
+<script setup lang="ts">
+  import { type User, useUsersStore } from './user-store'
+
+  const user = ref<User>({
+    username: ''
+  })
+  const { submit } = useUsersStore()
+  const { isLoading, isError, isSuccess, execute } = submit(user, undefined, {
+    // `submit()` will not be executed immediately
+    immediate: false
+  })
+</script>
+
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <div v-else-if="isError">An error occurred! 😭</div>
+  <div v-else-if="isSuccess">New user created! 🎉</div>
+  <div v-else>
+    <h1>Create User</h1>
+    <form @submit.prevent="execute()">
+      <input v-model="user.username" type="text" name="username" placeholder="Insert username" />
+      <button type="submit">Submit</button>
+    </forml>
+  </div>
+</template>
+```
+
 ## Remove
 
-In a component you can use the `useUsersStore` composable to access the store repository actions and delete data from the repository:
+`remove()` action allow to delete data from the repository:
 
 ```vue
 <script setup lang="ts">
@@ -391,10 +519,10 @@ In a component you can use the `useUsersStore` composable to access the store re
 
   const { remove } = useUsersStore()
   /*
-   * `remove()` execute a
+   * With HttpRepository `remove()` execute a
    * DELETE request to https://my-domain.com/users
    */
-  const { isLoading, isError, isSuccess, error, status } = remove({
+  const { isLoading, isError, isSuccess } = remove({
     id: '123-321' // "id" or other "keyProperty" field
   })
 </script>
@@ -402,13 +530,11 @@ In a component you can use the `useUsersStore` composable to access the store re
 <template>
   <div v-if="isLoading">Loading...</div>
   <div v-else-if="isError">An error occurred! 😭</div>
-  <div v-else-if="isSuccess">
-    <h1>Delete success!</h1>
-  </div>
+  <div v-else-if="isSuccess">Delete success! 🎉</div>
 </template>
 ```
 
-`remove({ [keyProperty]: '....' })` returns an object that contains:
+`remove()` returns an object that contains:
 
 ```ts
 const {
@@ -422,22 +548,176 @@ const {
   error,
   // Reactive status of the request
   status
-  // Reactive query object
-} = remove({ [keyProperty]: '....' })
+  // Function to execute the `remove()` action
+  execute,
+} = remove({
+  id: '123-321' // "id" or other "keyProperty" field
+})
 ```
 
-##### Parameters
+### Options
 
-`remove()` accepts:
+`remove()` accepts the following options:
 
 ```ts
-import type { HttpClientRequestOptions } from '@volverjs/data'
-
-interface REMOVE_OPTIONS {
-  params: { [key: string]: unknown } // must contain the `keyProperty`("id" by default)
-  options?: HttpClientRequestOptions // ref to https://github.com/volverjs/data/blob/bb06d1ac3f78773c12bd10a2c6d9ba3a925a8be0/src/HttpClient.ts#L26
-} // ref to https://github.com/volverjs/data/blob/bb06d1ac3f78773c12bd10a2c6d9ba3a925a8be0/src/RepositoryHttp.ts#L188
+const {
+  // ...
+} = remove(
+  /*
+   * The parameters map (default: undefined)
+   */
+  params,
+  /*
+   * The options object
+   */
+  {
+    /*
+     * Execute the `remove()` action immediately (default: true)
+     */
+    immediate: true
+  }
+)
 ```
+
+## Components
+
+`@volverjs/query-vue` also exposes some useful components:
+
+### ReadProvider
+
+`ReadProvider` is a component that allows to use `read()` action in a component tree:
+
+```vue
+<script setup lang="ts">
+  import { useUsersStore } from './user-store'
+
+  const { ReadProvider } = useUsersStore()
+</script>
+
+<template>
+  <ReadProvider v-slot="{ isLoading, isError, data }">
+    <div v-if="isLoading">Loading...</div>
+    <div v-else-if="isError">An error occurred! 😭</div>
+    <div v-else>
+      <h1>Users</h1>
+      <ul>
+        <li v-for="user in data" :key="user.id">
+          {{ user.username }}
+        </li>
+      </ul>
+    </div>
+  </ReadProvider>
+</template>
+```
+
+`ReadProvider` exposes all the properties returned by `read()` in the `v-slot` scope and accepts the following props:
+
+```vue
+<template>
+  <ReadProvider
+    v-bind="{
+      // The parameters map (default: undefined)
+      params,
+      // The `read()` options object (default: undefined)
+      options
+    }"
+  />
+</template>
+```
+
+### SubmitProvider
+
+`SubmitProvider` is a component that allows to use `submit()` action in a component tree:
+
+```vue
+<script setup lang="ts">
+  import { useUsersStore } from './user-store'
+
+  const { SubmitProvider } = useUsersStore()
+  const user = ref<User>({
+    username: ''
+  })
+</script>
+
+<template>
+  <SubmitProvider v-model="user" v-slot="{ isLoading, isError, isSuccess, execute }">
+    <div v-if="isLoading">Loading...</div>
+    <div v-else-if="isError">An error occurred! 😭</div>
+    <div v-else-if="isSuccess">New user created! 🎉</div>
+    <div v-else>
+      <h1>Create user</h1>
+      <form @submit.prevent="execute()">
+        <input v-model="user.username" type="text" name="username" placeholder="Insert username" />
+        <button type="submit">Submit</button>
+      </forml>
+    </div>
+  </SubmitProvider>
+</template>
+```
+
+`SubmitProvider` exposes all the properties returned by `submit()` in the `v-slot` scope and accepts the following props:
+
+```vue
+<template>
+  <SubmitProvider
+    v-bind="{
+      // The payload (required)
+      modelValue,
+      // The parameters map (default: undefined)
+      params,
+      // The `submit()` options object (default: { immediate: false })
+      options
+    }"
+  />
+</template>
+```
+
+The `v-model` directive provides a two-way binding so the reactive payload object will be updated when the `submit()` action is executed (for example with the server response).
+
+By default `SubmitProvider` will not execute the `submit()` action immediately, but you can change this behavior with `immediate` option.
+
+### RemoveProvider
+
+`RemoveProvider` is a component that allows to use `remove()` action in a component tree:
+
+```vue
+<script setup lang="ts">
+  import { useUsersStore } from './user-store'
+
+  const { RemoveProvider } = useUsersStore()
+</script>
+
+<template>
+  <RemoveProvider
+    :params="{ id: '123-321' }"
+    v-slot="{ isLoading, isError, isSuccess, execute }"
+  >
+    <div v-if="isLoading">Loading...</div>
+    <div v-else-if="isError">An error occurred! 😭</div>
+    <div v-else-if="isSuccess">Delete success! 🎉</div>
+    <div v-else>
+      <button @click="execute()">Delete</button>
+    </div>
+  </RemoveProvider>
+</template>
+```
+
+`RemoveProvider` exposes all the properties returned by `remove()` in the `v-slot` scope and accepts the following props:
+
+```vue
+<template>
+  <RemoveProvider
+    v-bind="{
+      // The parameters map (required)
+      params,
+      // The `remove()` options object (default: { immediate: false })
+      options
+    }"
+  />
+</template>
+```
+
+By default `RemoveProvider` will not execute the `remove()` action immediately, but you can change this behavior with `immediate` option.
 
 ## Acknoledgements
 

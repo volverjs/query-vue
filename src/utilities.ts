@@ -22,6 +22,18 @@ import type {
 	StoreRepositorySubmitOptions,
 } from './types'
 
+export function clone<Type>(value: Type): Type {
+	if (
+		typeof value === 'object' &&
+		value !== null &&
+		'clone' in value &&
+		typeof value.clone === 'function'
+	) {
+		return value.clone() as Type
+	}
+	return JSON.parse(JSON.stringify(value)) as Type
+}
+
 export function initStatus() {
 	const status = ref<StoreRepositoryStatus>(StoreRepositoryStatus.idle)
 	const isLoading = computed(
@@ -31,10 +43,10 @@ export function initStatus() {
 	const isSuccess = computed(
 		() => status.value === StoreRepositoryStatus.success,
 	)
-	const error = ref<Error | null>(null)
+	const error = ref<Error | undefined>()
 	watchEffect(() => {
 		if (status.value === StoreRepositoryStatus.loading) {
-			error.value = null
+			error.value = undefined
 		}
 	})
 	return { status, isLoading, isError, isSuccess, error }
@@ -143,7 +155,7 @@ export function initAutoExecuteSubmitHandlers<Type>(
 		cleanUp?: (cleanupFn: () => void) => void,
 	) => void,
 	status: Ref<StoreRepositoryStatus>,
-	options: StoreRepositorySubmitOptions = {},
+	options: StoreRepositorySubmitOptions<Type> = {},
 ) {
 	const {
 		immediate = true,
@@ -163,7 +175,7 @@ export function initAutoExecuteSubmitHandlers<Type>(
 		: computed(() => params)
 	const normalizedExecuteWhen = isRef(executeWhen)
 		? executeWhen
-		: computed(() => executeWhen(unref(params) as ParamMap))
+		: computed(() => executeWhen(unref(item), unref(params) as ParamMap))
 	// auto-submit on item or params change
 	if (autoExecute) {
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =

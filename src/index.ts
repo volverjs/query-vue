@@ -1,8 +1,20 @@
-import { type Ref, computed, isRef, ref, unref, watch } from 'vue'
+import {
+	type Ref,
+	type PropType,
+	computed,
+	isRef,
+	ref,
+	unref,
+	watch,
+	defineComponent,
+	toRefs,
+	markRaw,
+	onBeforeUnmount,
+} from 'vue'
 import { useIdle, tryOnBeforeUnmount } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { Hash } from '@volverjs/data/hash'
-import type { HttpClientRequestOptions, Repository } from '@volverjs/data'
+import type { Repository } from '@volverjs/data'
 import type {
 	ParamMap,
 	StoreRepositoryHash,
@@ -10,9 +22,11 @@ import type {
 	StoreRepositoryQuery,
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
+	StoreRepositoryRemoveOptions,
 } from './types'
 import { StoreRepositoryStatus } from './constants'
 import {
+	clone,
 	initStatus,
 	initAutoExecuteReadHandlers,
 	initAutoExecuteSubmitHandlers,
@@ -262,7 +276,7 @@ export const defineStoreRepository = <Type>(
 							group: options?.group,
 						})
 						status.value = StoreRepositoryStatus.success
-						error.value = null
+						error.value = undefined
 						return {
 							query: storeQuery.value,
 							data: storeQuery.value?.data,
@@ -281,7 +295,7 @@ export const defineStoreRepository = <Type>(
 					newParams = storeQuery.value.params
 				}
 				if (!newParams) {
-					newParams = unref(params)
+					newParams = params ?? {}
 				}
 				const hash = paramsToHash(newParams, options)
 				status.value = StoreRepositoryStatus.loading
@@ -384,10 +398,53 @@ export const defineStoreRepository = <Type>(
 			}
 		}
 
+		const ReadProvider = markRaw(
+			// eslint-disable-next-line
+			defineComponent({
+				name: 'StoreRepositoryReadProvider',
+				props: {
+					params: {
+						type: Object as PropType<ParamMap>,
+						default: undefined,
+					},
+					options: {
+						type: Object as PropType<StoreRepositoryReadOptions>,
+						default: undefined,
+					},
+				},
+				setup(props, { slots, expose }) {
+					const { params, options } = toRefs(props)
+					const toExpose = read(params, options.value)
+					expose(toExpose)
+					onBeforeUnmount(() => {
+						toExpose.cleanup()
+					})
+					return () => {
+						const slot = slots.default?.({
+							isLoading: toExpose.isLoading.value,
+							isError: toExpose.isError.value,
+							isSuccess: toExpose.isSuccess.value,
+							status: toExpose.status.value,
+							error: toExpose.error.value,
+							query: toExpose.query.value,
+							data: toExpose.data.value,
+							item: toExpose.item.value,
+							metadata: toExpose.metadata.value,
+							execute: toExpose.execute,
+							stop: toExpose.stop,
+							ignoreUpdates: toExpose.ignoreUpdates,
+							cleanup: toExpose.cleanup,
+						})
+						return slot ? slot : slots.default
+					}
+				},
+			}),
+		)
+
 		const submit = (
 			item: Ref<Type | undefined> | Type,
 			params: Ref<ParamMap> | ParamMap = {},
-			options?: StoreRepositorySubmitOptions,
+			options?: StoreRepositorySubmitOptions<Type>,
 		) => {
 			const storeQueryName =
 				options?.name ?? new Date().getTime().toString()
@@ -400,7 +457,7 @@ export const defineStoreRepository = <Type>(
 				onCleanup?: (cleanupFn: () => void) => void,
 			) => {
 				newItem = newItem ?? unref(item)
-				newParams = newParams ?? unref(params)
+				newParams = newParams ?? unref(params) ?? {}
 				if (newItem) {
 					if (
 						newItem?.[keyProperty] &&
@@ -452,11 +509,7 @@ export const defineStoreRepository = <Type>(
 						if (isRef(item)) {
 							ignoreUpdates(() => {
 								if (data && typeof data === 'object') {
-									item.value =
-										'clone' in data &&
-										typeof data.clone === 'function'
-											? data.clone()
-											: JSON.parse(JSON.stringify(data))
+									item.value = clone<Type>(data)
 								}
 							})
 						}
@@ -513,16 +566,78 @@ export const defineStoreRepository = <Type>(
 			}
 		}
 
+		const SubmitProvider = markRaw(
+			// eslint-disable-next-line
+			defineComponent({
+				name: 'StoreRepositorySubmitProvider',
+				props: {
+					modelValue: {
+						type: Object as PropType<Type>,
+						default: undefined,
+					},
+					params: {
+						type: Object as PropType<ParamMap>,
+						default: undefined,
+					},
+					options: {
+						type: Object as PropType<
+							StoreRepositorySubmitOptions<Type>
+						>,
+						default: () => ({
+							immediate: false,
+						}),
+					},
+				},
+				emits: ['update:modelValue'],
+				setup(props, { slots, expose, emit }) {
+					const { modelValue, params, options } = toRefs(props)
+					const localItem = computed({
+						get: () => modelValue.value,
+						set: (value) => {
+							emit('update:modelValue', value)
+						},
+					}) as Ref<Type | undefined>
+					const toExpose = submit(localItem, params, options.value)
+					expose(toExpose)
+					onBeforeUnmount(() => {
+						toExpose.cleanup()
+					})
+					return () => {
+						const slot = slots.default?.({
+							isLoading: toExpose.isLoading.value,
+							isError: toExpose.isError.value,
+							isSuccess: toExpose.isSuccess.value,
+							status: toExpose.status.value,
+							error: toExpose.error.value,
+							query: toExpose.query.value,
+							data: toExpose.data.value,
+							item: toExpose.item.value,
+							metadata: toExpose.metadata.value,
+							execute: toExpose.execute,
+							stop: toExpose.stop,
+							ignoreUpdates: toExpose.ignoreUpdates,
+							cleanup: toExpose.cleanup,
+						})
+						return slot ? slot : slots.default
+					}
+				},
+			}),
+		)
+
 		const remove = (
-			params: ParamMap,
-			options?: HttpClientRequestOptions,
+			params: Ref<ParamMap> | ParamMap,
+			{ immediate = true }: StoreRepositoryRemoveOptions = {},
 		) => {
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
 
 			const execute = async () => {
 				status.value = StoreRepositoryStatus.loading
-				const { responsePromise } = repository.remove(params, options)
+				const normalizedParams = unref(params)
+				const { responsePromise } = repository.remove(
+					normalizedParams,
+					options,
+				)
 
 				// check if keyProperty exists in params
 				if (!(keyProperty in params)) {
@@ -542,10 +657,10 @@ export const defineStoreRepository = <Type>(
 					}
 					status.value = StoreRepositoryStatus.success
 					const keysToRemove = Array.isArray(
-						params[keyProperty as string],
+						normalizedParams[keyProperty as string],
 					)
-						? params[keyProperty as string]
-						: [params[keyProperty as string]]
+						? normalizedParams[keyProperty as string]
+						: [normalizedParams[keyProperty as string]]
 					// remove keys from store
 					keysToRemove.forEach((key: string) => {
 						storeItems.value.delete(key)
@@ -556,15 +671,53 @@ export const defineStoreRepository = <Type>(
 				}
 			}
 			// execute immediately
-			execute()
+			if (immediate) {
+				execute()
+			}
 			return {
 				isLoading,
 				isError,
 				isSuccess,
 				error,
 				status,
+				execute,
 			}
 		}
+
+		const RemoveProvider = markRaw(
+			// eslint-disable-next-line
+			defineComponent({
+				name: 'StoreRepositoryRemoveProvider',
+				props: {
+					params: {
+						type: Object as PropType<ParamMap>,
+						default: undefined,
+					},
+					options: {
+						type: Object as PropType<StoreRepositoryRemoveOptions>,
+						default: () => ({
+							immediate: false,
+						}),
+					},
+				},
+				setup(props, { slots, expose }) {
+					const { params, options } = toRefs(props)
+					const toExpose = remove(params, options.value)
+					expose(toExpose)
+					return () => {
+						const slot = slots.default?.({
+							isLoading: toExpose.isLoading.value,
+							isError: toExpose.isError.value,
+							isSuccess: toExpose.isSuccess.value,
+							status: toExpose.status.value,
+							error: toExpose.error.value,
+							execute: toExpose.execute,
+						})
+						return slot ? slot : slots.default
+					}
+				},
+			}),
+		)
 
 		return {
 			queries: storeQueries,
@@ -577,6 +730,9 @@ export const defineStoreRepository = <Type>(
 			getItemByKey,
 			getItemsByKeys,
 			cleanHashes,
+			ReadProvider,
+			SubmitProvider,
+			RemoveProvider,
 		}
 	})
 }
