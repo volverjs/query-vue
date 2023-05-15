@@ -21,8 +21,6 @@ import type {
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
 } from './types'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const webcrypto = require('node:crypto').webcrypto
 
 export function clone<T>(value: T): T {
 	if (
@@ -251,6 +249,8 @@ export function initAutoExecuteSubmitHandlers<T>(
 export const getRandomValues = (length: number) => {
 	const array = new Uint32Array(length)
 	if (typeof crypto === 'undefined') {
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		const webcrypto = require('node:crypto').webcrypto
 		return webcrypto.getRandomValues(array)[0]
 	}
 	return crypto.getRandomValues(array)[0]
