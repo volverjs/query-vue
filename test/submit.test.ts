@@ -1,10 +1,11 @@
+import { nextTick, ref } from 'vue'
+import { describe, vi, beforeEach, it, expect } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
 import createFetchMock from 'vitest-fetch-mock'
-import { describe, vi, beforeEach, it, expect } from 'vitest'
-import { defineStoreRepository } from '../src/index'
 import { RepositoryHttp, HttpClient } from '@volverjs/data'
-import { nextTick, ref } from 'vue'
+import { defineStoreRepository } from '../src/index'
+import SubmitProvider from './components/SubmitProvider.vue'
 
 const fetchMock = createFetchMock(vi)
 const httpClient = new HttpClient({
@@ -30,6 +31,40 @@ describe('Submit', () => {
 	beforeEach(() => {
 		fetchMock.enableMocks()
 		fetchMock.resetMocks()
+	})
+
+	it('Submit an item with POST with component provider', async () => {
+		fetchMock.mockResponseOnce(
+			JSON.stringify([
+				{ id: '12345', firstname: 'John', lastname: 'Doe' },
+			]),
+			{},
+		)
+		const wrapper = mount(SubmitProvider, {
+			global: {
+				plugins: [createTestingPinia({ stubActions: false })],
+			},
+		})
+		const form = wrapper.find('form')
+		const firstname = wrapper.find('input[name="firstname"]')
+		const lastname = wrapper.find('input[name="lastname"]')
+		firstname.setValue('John')
+		lastname.setValue('Doe')
+		form.trigger('submit.prevent')
+		await nextTick()
+		expect(wrapper.find('div[data-test="loading"]').exists()).toBe(true)
+		await flushPromises()
+		await nextTick()
+		expect(wrapper.find('div[data-test="loading"]').exists()).toBe(false)
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/')
+		expect(request.method).toEqual('POST')
+		const formData = JSON.parse(
+			wrapper.find('div[data-test="form-data"]').text(),
+		)
+		expect(formData.id).toEqual('12345')
+		expect(formData.firstname).toEqual('John')
+		expect(formData.lastname).toEqual('Doe')
 	})
 
 	it('Submit an item with POST', async () => {

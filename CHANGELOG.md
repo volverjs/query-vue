@@ -2,15 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2023-05-15
+
+### Added
+
+- `ReadProvider`, `SubmitProvider` and `RemoveProvider` components;
+- `immediate` option to `remove()` action;
+- Read `execute()` function can be forced with `force` option.
+
+### Fix
+
+- Read key check is not needed with directory structure;
+- - All `execute()` functions return the same values;
+- `isLoading` keep `true` on request update (abort and retry);
+- An empty response is allowed in `read()` action.
+
 ## [1.0.0] - 2023-04-12
 
 ### Added
 
-- Doc example with `useRepositoryHttp()`
+- Doc example with `useRepositoryHttp()`.
 
 ### Change
 
-- Use new `@volverjs/data` version `1.0.0`
+- Use new `@volverjs/data` version `1.0.0`.
 
 ## [0.0.3] - 2023-03-27
 
@@ -40,6 +55,7 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[1.0.1]: https://github.com/volverjs/query-vue/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/volverjs/query-vue/compare/v0.0.3...v1.0.0
 [0.0.3]: https://github.com/volverjs/query-vue/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/volverjs/query-vue/compare/v0.0.1...v0.0.2

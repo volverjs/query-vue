@@ -21,6 +21,20 @@ import type {
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
 } from './types'
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const webcrypto = require('node:crypto').webcrypto
+
+export function clone<T>(value: T): T {
+	if (
+		typeof value === 'object' &&
+		value !== null &&
+		'clone' in value &&
+		typeof value.clone === 'function'
+	) {
+		return value.clone() as T
+	}
+	return JSON.parse(JSON.stringify(value)) as T
+}
 
 export function initStatus() {
 	const status = ref<StoreRepositoryStatus>(StoreRepositoryStatus.idle)
@@ -31,10 +45,10 @@ export function initStatus() {
 	const isSuccess = computed(
 		() => status.value === StoreRepositoryStatus.success,
 	)
-	const error = ref<Error | null>(null)
+	const error = ref<Error | undefined>()
 	watchEffect(() => {
 		if (status.value === StoreRepositoryStatus.loading) {
-			error.value = null
+			error.value = undefined
 		}
 	})
 	return { status, isLoading, isError, isSuccess, error }
@@ -134,16 +148,16 @@ export function initAutoExecuteReadHandlers(
 	return { stop, ignoreUpdates }
 }
 
-export function initAutoExecuteSubmitHandlers<Type>(
-	item: Ref<Type | undefined> | Type,
+export function initAutoExecuteSubmitHandlers<T>(
+	item: Ref<T | undefined> | T,
 	params: Ref<ParamMap> | ParamMap,
 	resubmit: (
-		item?: Type,
+		item?: T,
 		params?: ParamMap,
 		cleanUp?: (cleanupFn: () => void) => void,
 	) => void,
 	status: Ref<StoreRepositoryStatus>,
-	options: StoreRepositorySubmitOptions = {},
+	options: StoreRepositorySubmitOptions<T> = {},
 ) {
 	const {
 		immediate = true,
@@ -163,7 +177,7 @@ export function initAutoExecuteSubmitHandlers<Type>(
 		: computed(() => params)
 	const normalizedExecuteWhen = isRef(executeWhen)
 		? executeWhen
-		: computed(() => executeWhen(unref(params) as ParamMap))
+		: computed(() => executeWhen(unref(item), unref(params) as ParamMap))
 	// auto-submit on item or params change
 	if (autoExecute) {
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
@@ -232,4 +246,12 @@ export function initAutoExecuteSubmitHandlers<Type>(
 		documentVisibilityStopHandler?.()
 	}
 	return { stop, ignoreUpdates }
+}
+
+export const getRandomValues = (length: number) => {
+	const array = new Uint32Array(length)
+	if (typeof crypto === 'undefined') {
+		return webcrypto.getRandomValues(array)[0]
+	}
+	return crypto.getRandomValues(array)[0]
 }

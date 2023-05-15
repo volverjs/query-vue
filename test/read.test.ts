@@ -1,10 +1,11 @@
+import { ref, nextTick, computed } from 'vue'
+import { describe, vi, beforeEach, it, expect } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
 import createFetchMock from 'vitest-fetch-mock'
-import { describe, vi, beforeEach, it, expect } from 'vitest'
-import { defineStoreRepository } from '../src/index'
 import { RepositoryHttp, HttpClient } from '@volverjs/data'
-import { ref, nextTick, computed } from 'vue'
+import { defineStoreRepository } from '../src/index'
+import ReadProvider from './components/ReadProvider.vue'
 
 const fetchMock = createFetchMock(vi)
 const httpClient = new HttpClient({
@@ -32,6 +33,25 @@ describe('Read', () => {
 		fetchMock.resetMocks()
 	})
 
+	it('Read from a parameters map with component provider', async () => {
+		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
+		const wrapper = mount(ReadProvider, {
+			global: {
+				plugins: [createTestingPinia({ stubActions: false })],
+			},
+		})
+		expect(wrapper.text()).toContain('Loading...')
+		await flushPromises()
+		await nextTick()
+		expect(wrapper.text()).not.toContain('Loading...')
+		expect(wrapper.text()).toContain('12345')
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
+		const item = JSON.parse(wrapper.find('div[data-test="item"]').text())
+		expect(item.id).toEqual('12345')
+	})
+
 	it('Read from a parameters map', async () => {
 		fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
 		const useStoreReposotory = defineStoreRepository<Entity>(
@@ -49,6 +69,9 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
 	})
 
 	it('Read cached values and force execute', async () => {
@@ -65,7 +88,7 @@ describe('Read', () => {
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
-		execute()
+		execute(true)
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
 		expect(isLoading.value).toBe(false)
@@ -73,6 +96,10 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(fetchMock.mock.calls.length).toBe(1)
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
 	})
 
 	it('Read without persistence', async () => {
@@ -95,6 +122,9 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
 	})
 
 	it('Read from a map and query name', async () => {
@@ -118,6 +148,9 @@ describe('Read', () => {
 		expect(isSuccess.value).toBe(true)
 		expect(query.value.data?.[0].id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
 	})
 
 	it('Read from a map and make a directory', async () => {
@@ -140,6 +173,9 @@ describe('Read', () => {
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value).toBe(undefined)
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
 	})
 
 	it('Read from a map not immediate', async () => {
@@ -161,6 +197,9 @@ describe('Read', () => {
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		const request = fetchMock.mock.calls[0][0] as Request
+		expect(request.url).toEqual('https://myapi.com/v1/12345')
+		expect(request.method).toEqual('GET')
 	})
 
 	it('Read from a ref with autoExecute', async () => {
@@ -194,6 +233,13 @@ describe('Read', () => {
 		expect(item.value.id).toBe('54321')
 		expect(getItemByKey('12345').value.id).toBe('12345')
 		expect(getItemByKey('54321').value.id).toBe('54321')
+		expect(fetchMock.mock.calls.length).toBe(2)
+		const firstRequest = fetchMock.mock.calls[0][0] as Request
+		expect(firstRequest.url).toEqual('https://myapi.com/v1/12345')
+		expect(firstRequest.method).toEqual('GET')
+		const secondRequest = fetchMock.mock.calls[1][0] as Request
+		expect(secondRequest.url).toEqual('https://myapi.com/v1/54321')
+		expect(secondRequest.method).toEqual('GET')
 	})
 
 	it('Read from a ref with autoExecute and stop', async () => {
@@ -220,6 +266,10 @@ describe('Read', () => {
 		params.value.id = '54321'
 		await nextTick()
 		expect(isLoading.value).toBe(false)
+		expect(fetchMock.mock.calls.length).toBe(1)
+		const secondRequest = fetchMock.mock.calls[0][0] as Request
+		expect(secondRequest.url).toEqual('https://myapi.com/v1/12345')
+		expect(secondRequest.method).toEqual('GET')
 	})
 
 	it('Re-execute', async () => {
@@ -252,6 +302,13 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('54321')
 		expect(item.value.id).toBe('54321')
 		expect(getItemByKey('54321').value.id).toBe('54321')
+		expect(fetchMock.mock.calls.length).toBe(2)
+		const firstRequest = fetchMock.mock.calls[0][0] as Request
+		expect(firstRequest.url).toEqual('https://myapi.com/v1/12345')
+		expect(firstRequest.method).toEqual('GET')
+		const secondRequest = fetchMock.mock.calls[1][0] as Request
+		expect(secondRequest.url).toEqual('https://myapi.com/v1/54321')
+		expect(secondRequest.method).toEqual('GET')
 	})
 
 	it('Ref executeWhen ', async () => {
@@ -281,6 +338,10 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(fetchMock.mock.calls.length).toBe(1)
+		const secondRequest = fetchMock.mock.calls[0][0] as Request
+		expect(secondRequest.url).toEqual('https://myapi.com/v1/12345')
+		expect(secondRequest.method).toEqual('GET')
 	})
 
 	it('Computed executeWhen', async () => {
@@ -307,6 +368,10 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(fetchMock.mock.calls.length).toBe(1)
+		const secondRequest = fetchMock.mock.calls[0][0] as Request
+		expect(secondRequest.url).toEqual('https://myapi.com/v1/12345')
+		expect(secondRequest.method).toEqual('GET')
 	})
 
 	it('Function executeWhen', async () => {
@@ -333,6 +398,10 @@ describe('Read', () => {
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
 		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(fetchMock.mock.calls.length).toBe(1)
+		const secondRequest = fetchMock.mock.calls[0][0] as Request
+		expect(secondRequest.url).toEqual('https://myapi.com/v1/12345')
+		expect(secondRequest.method).toEqual('GET')
 	})
 
 	it('Group queries (infinite scroll)', async () => {
@@ -366,5 +435,6 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value.length).toBe(4)
+		expect(fetchMock.mock.calls.length).toBe(2)
 	})
 })

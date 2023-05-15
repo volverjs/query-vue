@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config'
+import Vue from '@vitejs/plugin-vue'
 import ESLint from 'vite-plugin-eslint'
 import path from 'path'
 
@@ -11,7 +12,7 @@ export default () => {
 		},
 		build: {
 			lib: {
-				name: '@volverjs/store-repository-pinia',
+				name: '@volverjs/query-vue',
 				entry: path.resolve(__dirname, 'src/index.ts'),
 				fileName: (format) => `index.${format}.js`,
 			},
@@ -28,10 +29,19 @@ export default () => {
 						vue: 'Vue',
 						pinia: 'pinia',
 						'@vueuse/core': 'VueUseCore',
+						'@volverjs/data/hash': 'VolverDataHash',
 					},
 				},
 			},
 		},
-		plugins: [ESLint()],
+		plugins: [
+			// https://github.com/vitejs/vite-plugin-vue
+			Vue({
+				include: [/\.vue$/],
+			}),
+
+			// https://github.com/gxmari007/vite-plugin-eslint
+			ESLint({ exclude: ['**/node_modules/**'] }),
+		],
 	})
 }

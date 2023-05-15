@@ -1,8 +1,20 @@
-import { type Ref, computed, isRef, ref, unref, watch } from 'vue'
-import { useIdle, tryOnBeforeUnmount } from '@vueuse/core'
+import {
+	type Ref,
+	type PropType,
+	computed,
+	isRef,
+	ref,
+	unref,
+	watch,
+	defineComponent,
+	toRefs,
+	markRaw,
+	onBeforeUnmount,
+} from 'vue'
+import { useIdle, tryOnUnmounted } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { Hash } from '@volverjs/data/hash'
-import type { HttpClientRequestOptions, Repository } from '@volverjs/data'
+import type { Repository } from '@volverjs/data'
 import type {
 	ParamMap,
 	StoreRepositoryHash,
@@ -10,20 +22,23 @@ import type {
 	StoreRepositoryQuery,
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
+	StoreRepositoryRemoveOptions,
 } from './types'
 import { StoreRepositoryStatus } from './constants'
 import {
+	clone,
 	initStatus,
 	initAutoExecuteReadHandlers,
 	initAutoExecuteSubmitHandlers,
+	getRandomValues,
 } from './utilities'
 
-export const defineStoreRepository = <Type>(
-	repository: Repository<Type>,
+export const defineStoreRepository = <T>(
+	repository: Repository<T>,
 	name: string,
-	options: StoreRepositoryOptions<Type> = {},
+	options: StoreRepositoryOptions<T> = {},
 ) => {
-	const keyProperty = options.keyProperty ?? ('id' as keyof Type)
+	const keyProperty = options.keyProperty ?? ('id' as keyof T)
 	const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
 	const defaultDebounce = options.defaultDebounce ?? 0
 	const hashFunction = options.hashFunction ?? Hash.cyrb53
@@ -43,7 +58,7 @@ export const defineStoreRepository = <Type>(
 		const storeQueries: Ref<Map<string, StoreRepositoryQuery>> = ref(
 			new Map(),
 		)
-		const storeItems: Ref<Map<unknown, Type>> = ref(new Map())
+		const storeItems: Ref<Map<unknown, T>> = ref(new Map())
 		const storeHashes: Ref<Map<string, StoreRepositoryHash>> = ref(
 			new Map(),
 		)
@@ -53,9 +68,9 @@ export const defineStoreRepository = <Type>(
 
 		const getItemsByKeys = (keys: unknown[] | Ref<unknown[]>) =>
 			computed(() => {
-				return unref(keys).reduce((acc: Type[], key) => {
+				return unref(keys).reduce((acc: T[], key) => {
 					if (storeItems.value.get(key)) {
-						acc.push(storeItems.value.get(key) as Type)
+						acc.push(storeItems.value.get(key) as T)
 						return acc
 					}
 					return acc
@@ -86,7 +101,7 @@ export const defineStoreRepository = <Type>(
 									acc.keys.push(...keys)
 								}
 								if (data) {
-									acc.data.push(...(data as Type[]))
+									acc.data.push(...(data as T[]))
 								}
 								acc.metadata = { ...acc.metadata, ...metadata }
 								if (acc.timestamp < timestamp) {
@@ -98,7 +113,7 @@ export const defineStoreRepository = <Type>(
 						},
 						{
 							keys: [] as unknown[],
-							data: [] as Type[],
+							data: [] as T[],
 							metadata: {} as ParamMap,
 							params: {} as ParamMap,
 							timestamp: 0,
@@ -106,9 +121,9 @@ export const defineStoreRepository = <Type>(
 					)
 					if (keys.length) {
 						data.push(
-							...keys.reduce((acc: Type[], key) => {
+							...keys.reduce((acc: T[], key) => {
 								if (storeItems.value.get(key)) {
-									acc.push(storeItems.value.get(key) as Type)
+									acc.push(storeItems.value.get(key) as T)
 								}
 								return acc
 							}, []),
@@ -143,13 +158,16 @@ export const defineStoreRepository = <Type>(
 			hash: string,
 			storeQueryName: string,
 			{
-				keys,
 				data,
 				timestamp,
 				params,
 				metadata,
 				group,
-			}: Partial<StoreRepositoryHash> & { group?: boolean } = {},
+				directory,
+			}: Partial<StoreRepositoryHash<T>> & {
+				group?: boolean
+				directory?: boolean
+			} = {},
 		) => {
 			const storeHash =
 				storeHashes.value.get(hash) ??
@@ -157,14 +175,23 @@ export const defineStoreRepository = <Type>(
 					storeQueries: new Set(),
 				} as StoreRepositoryHash)
 			storeHash.storeQueries.add(storeQueryName)
-			if (timestamp || keys || data) {
+			if (timestamp || data) {
 				storeHash.timestamp = timestamp ?? new Date().getTime()
 			}
-			if (keys) {
-				storeHash.keys = keys
-			}
 			if (data) {
-				storeHash.data = data
+				if (!directory) {
+					const keys: unknown[] = []
+					data.forEach((item) => {
+						const key = item[keyProperty]
+						if (key) {
+							keys.push(key)
+							storeItems.value.set(key, item)
+						}
+					})
+					storeHash.keys = keys
+				} else {
+					storeHash.data = data
+				}
 			}
 			if (params) {
 				storeHash.params = params
@@ -246,33 +273,27 @@ export const defineStoreRepository = <Type>(
 			options?: StoreRepositoryReadOptions,
 		) => {
 			const storeQueryName =
-				options?.name ?? new Date().getTime().toString()
+				options?.name ?? getRandomValues(1).toString()
 			const storeQuery = getQueryByName(storeQueryName)
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
+			const hasCleanupRequest = ref(false)
+
+			// execute function
 			const execute = async (
-				newParams?: ParamMap,
-				oldParams?: ParamMap,
+				newParamsOrForceExecute?: ParamMap | boolean,
+				oldParamsOrForceExecute?: ParamMap,
 				onCleanup?: (cleanupFn: () => void) => void,
 			) => {
-				if (newParams) {
-					const cacheHash = paramsToHash(newParams, options)
-					if (hasHash(cacheHash, options)) {
-						setHash(cacheHash, storeQueryName, {
-							group: options?.group,
-						})
-						status.value = StoreRepositoryStatus.success
-						error.value = null
-						return {
-							query: storeQuery.value,
-							data: storeQuery.value?.data,
-							metadata: storeQuery.value?.metadata,
-							status: status.value,
-							error: error.value,
-							isSuccess: isSuccess.value,
-							isError: isError.value,
-						}
-					}
+				let newParams: ParamMap | undefined
+				let forceExecute = false
+				if (typeof newParamsOrForceExecute === 'boolean') {
+					forceExecute = newParamsOrForceExecute
+				} else {
+					newParams = newParamsOrForceExecute
+				}
+				if (typeof oldParamsOrForceExecute === 'boolean') {
+					forceExecute = oldParamsOrForceExecute
 				}
 				if (!newParams && isRef(params)) {
 					newParams = unref<ParamMap>(params)
@@ -281,20 +302,48 @@ export const defineStoreRepository = <Type>(
 					newParams = storeQuery.value.params
 				}
 				if (!newParams) {
-					newParams = unref(params)
+					newParams = params ?? {}
 				}
 				const hash = paramsToHash(newParams, options)
+				// check if hash is already set
+				if (hasHash(hash, options) && !forceExecute) {
+					setHash(hash, storeQueryName, {
+						group: options?.group,
+					})
+					status.value = StoreRepositoryStatus.success
+					error.value = undefined
+					return {
+						query: storeQuery.value,
+						data: storeQuery.value?.data,
+						itme: storeQuery.value?.data?.[0],
+						metadata: storeQuery.value?.metadata,
+						error: error.value,
+						status: status.value,
+						isSuccess: isSuccess.value,
+						isError: isError.value,
+					}
+				}
+				// set new hash
+				setHash(hash, storeQueryName, {
+					group: options?.group,
+				})
 				status.value = StoreRepositoryStatus.loading
 				const { responsePromise, abort } = repository.read(newParams, {
 					key: hash,
 				})
 				if (abort && onCleanup) {
-					onCleanup(abort)
+					onCleanup(() => {
+						hasCleanupRequest.value = true
+						abort()
+					})
 				}
 				try {
+					hasCleanupRequest.value = false
 					const { data, metadata, aborted } = await responsePromise
 					if (aborted) {
-						status.value = StoreRepositoryStatus.idle
+						if (hasCleanupRequest.value) {
+							status.value = StoreRepositoryStatus.idle
+						}
 						return { status: status.value, aborted }
 					}
 					if (!data) {
@@ -302,34 +351,38 @@ export const defineStoreRepository = <Type>(
 						error.value = new Error(
 							`read: empty response is not allowed`,
 						)
-						return { error: error.value, status: status.value }
+						return {
+							error: error.value,
+							status: status.value,
+							isSuccess: isSuccess.value,
+							isError: isError.value,
+						}
 					}
-					if (!data.every((item) => item[keyProperty])) {
+					if (
+						!options?.directory &&
+						data.length > 0 &&
+						!data.every((item) => item[keyProperty])
+					) {
 						status.value = StoreRepositoryStatus.error
 						error.value = new Error(
 							`read: response must contain a ${String(
 								keyProperty,
 							)} property`,
 						)
-						return { error: error.value, status: status.value }
+						return {
+							error: error.value,
+							status: status.value,
+							isSuccess: isSuccess.value,
+							isError: isError.value,
+						}
 					}
 					setHash(hash, storeQueryName, {
-						keys: !options?.directory
-							? data.map((item) => item[keyProperty])
-							: undefined,
-						data: options?.directory ? data : undefined,
+						data,
 						params,
 						metadata,
 						group: options?.group,
+						directory: options?.directory,
 					})
-					if (!options?.directory) {
-						data.forEach((item) => {
-							const key = item[keyProperty]
-							if (key) {
-								storeItems.value.set(key, item)
-							}
-						})
-					}
 					status.value = StoreRepositoryStatus.success
 				} catch (err) {
 					status.value = StoreRepositoryStatus.error
@@ -338,9 +391,10 @@ export const defineStoreRepository = <Type>(
 				return {
 					query: storeQuery.value,
 					data: storeQuery.value?.data,
+					item: storeQuery.value?.data?.[0],
 					metadata: storeQuery.value?.metadata,
-					status: status.value,
 					error: error.value,
+					status: status.value,
 					isSuccess: isSuccess.value,
 					isError: isError.value,
 				}
@@ -361,15 +415,15 @@ export const defineStoreRepository = <Type>(
 					disableQuery(storeQueryName)
 				}
 			}
-			tryOnBeforeUnmount(() => {
+			tryOnUnmounted(() => {
 				cleanup()
 			})
 			return {
 				isLoading,
 				isError,
 				isSuccess,
-				status,
 				error,
+				status,
 				query: storeQuery,
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
@@ -381,23 +435,71 @@ export const defineStoreRepository = <Type>(
 			}
 		}
 
+		const ReadProvider = markRaw(
+			// eslint-disable-next-line
+			defineComponent({
+				name: 'StoreRepositoryReadProvider',
+				props: {
+					params: {
+						type: Object as PropType<ParamMap>,
+						default: undefined,
+					},
+					options: {
+						type: Object as PropType<StoreRepositoryReadOptions>,
+						default: undefined,
+					},
+				},
+				setup(props, { slots, expose }) {
+					const { params, options } = toRefs(props)
+					const toExpose = read(params, options.value)
+					expose(toExpose)
+					onBeforeUnmount(() => {
+						toExpose.cleanup()
+					})
+					return () => {
+						const slot = slots.default?.({
+							isLoading: toExpose.isLoading.value,
+							isError: toExpose.isError.value,
+							isSuccess: toExpose.isSuccess.value,
+							error: toExpose.error.value,
+							status: toExpose.status.value,
+							query: toExpose.query.value,
+							data: toExpose.data.value,
+							item: toExpose.item.value,
+							metadata: toExpose.metadata.value,
+							execute: toExpose.execute,
+							stop: toExpose.stop,
+							ignoreUpdates: toExpose.ignoreUpdates,
+							cleanup: toExpose.cleanup,
+						})
+						return slot ? slot : slots.default
+					}
+				},
+			}),
+		)
+
 		const submit = (
-			item: Ref<Type | undefined> | Type,
+			item: Ref<T | undefined> | T,
 			params: Ref<ParamMap> | ParamMap = {},
-			options?: StoreRepositorySubmitOptions,
+			options?: StoreRepositorySubmitOptions<T>,
 		) => {
+			const hasCleanupRequest = ref(false)
 			const storeQueryName =
 				options?.name ?? new Date().getTime().toString()
 			const storeQuery = getQueryByName(storeQueryName)
+
+			// init status
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
+
+			// execute function
 			const execute = async (
-				newItem?: Type,
+				newItem?: T,
 				newParams?: ParamMap,
 				onCleanup?: (cleanupFn: () => void) => void,
 			) => {
 				newItem = newItem ?? unref(item)
-				newParams = newParams ?? unref(params)
+				newParams = newParams ?? unref(params) ?? {}
 				if (newItem) {
 					if (
 						newItem?.[keyProperty] &&
@@ -412,48 +514,61 @@ export const defineStoreRepository = <Type>(
 						: repository.create(newItem, newParams, options)
 
 					if (abort && onCleanup) {
-						onCleanup(abort)
+						onCleanup(() => {
+							hasCleanupRequest.value = true
+							abort()
+						})
 					}
 					try {
+						hasCleanupRequest.value = false
 						const { data, metadata, aborted } =
 							await responsePromise
 						if (aborted) {
-							status.value = StoreRepositoryStatus.idle
-							return
+							if (hasCleanupRequest.value) {
+								status.value = StoreRepositoryStatus.idle
+							}
+							return {
+								error: error.value,
+								status: status.value,
+								aborted,
+							}
 						}
 						if (!data) {
 							status.value = StoreRepositoryStatus.error
 							error.value = new Error(
 								`submit: empty response is not allowed`,
 							)
-							return
+							return {
+								error: error.value,
+								status: status.value,
+								isSuccess: isSuccess.value,
+								isError: isError.value,
+							}
 						}
-						if (!data[keyProperty]) {
+						const key = data[keyProperty]
+						if (!key) {
 							status.value = StoreRepositoryStatus.error
 							error.value = new Error(
 								`submit: response must contain a ${String(
 									keyProperty,
 								)} property`,
 							)
-							return
+							return {
+								error: error.value,
+								status: status.value,
+								isSuccess: isSuccess.value,
+								isError: isError.value,
+							}
 						}
 						setHash(hash, storeQueryName, {
-							keys: [data[keyProperty]],
+							data: [data],
 							params,
 							metadata,
 						})
-						const key = data[keyProperty]
-						if (key) {
-							storeItems.value.set(key, data)
-						}
 						if (isRef(item)) {
 							ignoreUpdates(() => {
 								if (data && typeof data === 'object') {
-									item.value =
-										'clone' in data &&
-										typeof data.clone === 'function'
-											? data.clone()
-											: JSON.parse(JSON.stringify(data))
+									item.value = clone<T>(data)
 								}
 							})
 						}
@@ -466,14 +581,15 @@ export const defineStoreRepository = <Type>(
 				return {
 					query: storeQuery.value,
 					data: storeQuery.value?.data,
+					item: storeQuery.value?.data?.[0],
 					metadata: storeQuery.value?.metadata,
-					status: status.value,
 					error: error.value,
+					status: status.value,
 					isSuccess: isSuccess.value,
 					isError: isError.value,
 				}
 			}
-			const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<Type>(
+			const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<T>(
 				item,
 				params,
 				execute,
@@ -490,15 +606,15 @@ export const defineStoreRepository = <Type>(
 					disableQuery(storeQueryName)
 				}
 			}
-			tryOnBeforeUnmount(() => {
+			tryOnUnmounted(() => {
 				cleanup()
 			})
 			return {
 				isLoading,
 				isError,
 				isSuccess,
-				status,
 				error,
+				status,
 				query: storeQuery,
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
@@ -510,16 +626,80 @@ export const defineStoreRepository = <Type>(
 			}
 		}
 
+		const SubmitProvider = markRaw(
+			// eslint-disable-next-line
+			defineComponent({
+				name: 'StoreRepositorySubmitProvider',
+				props: {
+					modelValue: {
+						type: Object as PropType<T>,
+						default: undefined,
+					},
+					params: {
+						type: Object as PropType<ParamMap>,
+						default: undefined,
+					},
+					options: {
+						type: Object as PropType<
+							StoreRepositorySubmitOptions<T>
+						>,
+						default: () => ({
+							immediate: false,
+						}),
+					},
+				},
+				emits: ['update:modelValue'],
+				setup(props, { slots, expose, emit }) {
+					const { modelValue, params, options } = toRefs(props)
+					const localItem = computed({
+						get: () => modelValue.value,
+						set: (value) => {
+							emit('update:modelValue', value)
+						},
+					}) as Ref<T | undefined>
+					const toExpose = submit(localItem, params, options.value)
+					expose(toExpose)
+					onBeforeUnmount(() => {
+						toExpose.cleanup()
+					})
+					return () => {
+						const slot = slots.default?.({
+							isLoading: toExpose.isLoading.value,
+							isError: toExpose.isError.value,
+							isSuccess: toExpose.isSuccess.value,
+							status: toExpose.status.value,
+							error: toExpose.error.value,
+							query: toExpose.query.value,
+							data: toExpose.data.value,
+							item: toExpose.item.value,
+							metadata: toExpose.metadata.value,
+							execute: toExpose.execute,
+							stop: toExpose.stop,
+							ignoreUpdates: toExpose.ignoreUpdates,
+							cleanup: toExpose.cleanup,
+						})
+						return slot ? slot : slots.default
+					}
+				},
+			}),
+		)
+
 		const remove = (
-			params: ParamMap,
-			options?: HttpClientRequestOptions,
+			params: Ref<ParamMap> | ParamMap,
+			{ immediate = true }: StoreRepositoryRemoveOptions = {},
 		) => {
+			// init status
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
 
+			// execute function
 			const execute = async () => {
 				status.value = StoreRepositoryStatus.loading
-				const { responsePromise } = repository.remove(params, options)
+				const normalizedParams = unref(params)
+				const { responsePromise } = repository.remove(
+					normalizedParams,
+					options,
+				)
 
 				// check if keyProperty exists in params
 				if (!(keyProperty in params)) {
@@ -529,7 +709,12 @@ export const defineStoreRepository = <Type>(
 							keyProperty,
 						)} property`,
 					)
-					return
+					return {
+						error: error.value,
+						status: status.value,
+						isSuccess: false,
+						isError: true,
+					}
 				}
 				try {
 					const { aborted } = await responsePromise
@@ -539,10 +724,11 @@ export const defineStoreRepository = <Type>(
 					}
 					status.value = StoreRepositoryStatus.success
 					const keysToRemove = Array.isArray(
-						params[keyProperty as string],
+						normalizedParams[keyProperty as string],
 					)
-						? params[keyProperty as string]
-						: [params[keyProperty as string]]
+						? normalizedParams[keyProperty as string]
+						: [normalizedParams[keyProperty as string]]
+
 					// remove keys from store
 					keysToRemove.forEach((key: string) => {
 						storeItems.value.delete(key)
@@ -551,17 +737,61 @@ export const defineStoreRepository = <Type>(
 					status.value = StoreRepositoryStatus.error
 					error.value = err as Error
 				}
+				return {
+					error: error.value,
+					status: status.value,
+					isSuccess: isSuccess.value,
+					isError: isError.value,
+				}
 			}
 			// execute immediately
-			execute()
+			if (immediate) {
+				execute()
+			}
 			return {
 				isLoading,
 				isError,
 				isSuccess,
 				error,
 				status,
+				execute,
 			}
 		}
+
+		const RemoveProvider = markRaw(
+			// eslint-disable-next-line
+			defineComponent({
+				name: 'StoreRepositoryRemoveProvider',
+				props: {
+					params: {
+						type: Object as PropType<ParamMap>,
+						default: undefined,
+					},
+					options: {
+						type: Object as PropType<StoreRepositoryRemoveOptions>,
+						default: () => ({
+							immediate: false,
+						}),
+					},
+				},
+				setup(props, { slots, expose }) {
+					const { params, options } = toRefs(props)
+					const toExpose = remove(params, options.value)
+					expose(toExpose)
+					return () => {
+						const slot = slots.default?.({
+							isLoading: toExpose.isLoading.value,
+							isError: toExpose.isError.value,
+							isSuccess: toExpose.isSuccess.value,
+							status: toExpose.status.value,
+							error: toExpose.error.value,
+							execute: toExpose.execute,
+						})
+						return slot ? slot : slots.default
+					}
+				},
+			}),
+		)
 
 		return {
 			queries: storeQueries,
@@ -574,6 +804,9 @@ export const defineStoreRepository = <Type>(
 			getItemByKey,
 			getItemsByKeys,
 			cleanHashes,
+			ReadProvider,
+			SubmitProvider,
+			RemoveProvider,
 		}
 	})
 }
