@@ -39,7 +39,7 @@
         "*.d.ts"
     ],
     "dependencies": {
-        "@volverjs/data": "1.0.2",
+        "@volverjs/data": "1.0.3",
         "@vueuse/core": "^10.1.2",
         "pinia": "^2.0.36",
         "vue": "^3.3.2"
