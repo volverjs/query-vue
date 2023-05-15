@@ -199,29 +199,46 @@ ignoreUpdates(() => {
 
 ### Execute
 
-You can re-execute the `read()` action by calling the `execute()` method:
+You can re-execute the `read()` action by calling the `execute()` method with a parameters map that will override the current parameters:
 
 ```ts
-const { data, execute } = read()
-
-// ...
-
-execute()
-// `read()` will be re-executed
-```
-
-`execute()` accepts an optional parameters map that will override the current parameters:
-
-```ts
-const { data, execute } = read()
+const { data, execute } = read({
+  sort: 'name',
+  order: 'asc'
+})
 
 // ...
 
 execute({
   sort: 'name',
-  order: 'asc'
+  order: 'desc'
 })
 // `read()` will be re-executed with the given parameters
+```
+
+Persistance can be ignored with the `force` option:
+
+```ts
+const { data, execute } = read({
+  sort: 'name',
+  order: 'asc'
+})
+
+// ...
+
+execute(true)
+// `read()` will be re-executed ignoring persistance
+
+// ...
+
+execute(
+  {
+    sort: 'name',
+    order: 'desc'
+  },
+  true
+)
+// `read()` will be re-executed with the given parameters ignoring persistance
 ```
 
 A `read()` can be executed later with `immediate: false` option:

@@ -88,7 +88,7 @@ describe('Read', () => {
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
-		execute()
+		execute(true)
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
 		expect(isLoading.value).toBe(false)

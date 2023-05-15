@@ -3,17 +3,17 @@ import type { Ref } from 'vue'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ParamMap = Record<string, any>
 
-export type StoreRepositoryOptions<Type> = {
-	keyProperty?: keyof Type
+export type StoreRepositoryOptions<T> = {
+	keyProperty?: keyof T
 	defaultPersistence?: number
 	defaultDebounce?: number | Ref<number>
 	hashFunction?: (str: string) => number
 	cleanUpEvery?: number
 }
 
-export type StoreRepositoryHash = {
-	keys?: unknown[]
-	data?: unknown[]
+export type StoreRepositoryHash<T = unknown> = {
+	keys?: T[]
+	data?: T[]
 	metadata?: ParamMap
 	timestamp: number
 	params: ParamMap
@@ -39,11 +39,11 @@ export type StoreRepositoryReadOptions = {
 	autoExecuteOnDocumentVisibility?: boolean
 }
 
-export type StoreRepositorySubmitOptions<Type> = {
+export type StoreRepositorySubmitOptions<T> = {
 	name?: string
 	keepAlive?: boolean
 	immediate?: boolean
-	executeWhen?: Ref<boolean> | ((item?: Type, params?: ParamMap) => boolean)
+	executeWhen?: Ref<boolean> | ((item?: T, params?: ParamMap) => boolean)
 	autoExecute?: boolean
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean

@@ -22,16 +22,16 @@ import type {
 	StoreRepositorySubmitOptions,
 } from './types'
 
-export function clone<Type>(value: Type): Type {
+export function clone<T>(value: T): T {
 	if (
 		typeof value === 'object' &&
 		value !== null &&
 		'clone' in value &&
 		typeof value.clone === 'function'
 	) {
-		return value.clone() as Type
+		return value.clone() as T
 	}
-	return JSON.parse(JSON.stringify(value)) as Type
+	return JSON.parse(JSON.stringify(value)) as T
 }
 
 export function initStatus() {
@@ -146,16 +146,16 @@ export function initAutoExecuteReadHandlers(
 	return { stop, ignoreUpdates }
 }
 
-export function initAutoExecuteSubmitHandlers<Type>(
-	item: Ref<Type | undefined> | Type,
+export function initAutoExecuteSubmitHandlers<T>(
+	item: Ref<T | undefined> | T,
 	params: Ref<ParamMap> | ParamMap,
 	resubmit: (
-		item?: Type,
+		item?: T,
 		params?: ParamMap,
 		cleanUp?: (cleanupFn: () => void) => void,
 	) => void,
 	status: Ref<StoreRepositoryStatus>,
-	options: StoreRepositorySubmitOptions<Type> = {},
+	options: StoreRepositorySubmitOptions<T> = {},
 ) {
 	const {
 		immediate = true,
