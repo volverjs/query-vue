@@ -21,7 +21,8 @@ import type {
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
 } from './types'
-import { webcrypto } from 'crypto'
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const webcrypto = require('node:crypto').webcrypto
 
 export function clone<T>(value: T): T {
 	if (
