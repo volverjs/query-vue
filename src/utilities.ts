@@ -21,6 +21,7 @@ import type {
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
 } from './types'
+import { webcrypto } from 'crypto'
 
 export function clone<T>(value: T): T {
 	if (
@@ -244,4 +245,12 @@ export function initAutoExecuteSubmitHandlers<T>(
 		documentVisibilityStopHandler?.()
 	}
 	return { stop, ignoreUpdates }
+}
+
+export const getRandomValues = (length: number) => {
+	const array = new Uint32Array(length)
+	if (typeof crypto === 'undefined') {
+		return webcrypto.getRandomValues(array)[0]
+	}
+	return crypto.getRandomValues(array)[0]
 }

@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - `ReadProvider`, `SubmitProvider` and `RemoveProvider` components;
 - `immediate` option to `remove()` action;
-  - Read `execute()` function can be forced with `force` option.
+- Read `execute()` function can be forced with `force` option.
 
 ### Fix
 

@@ -30,6 +30,7 @@ import {
 	initStatus,
 	initAutoExecuteReadHandlers,
 	initAutoExecuteSubmitHandlers,
+	getRandomValues,
 } from './utilities'
 
 export const defineStoreRepository = <T>(
@@ -272,8 +273,7 @@ export const defineStoreRepository = <T>(
 			options?: StoreRepositoryReadOptions,
 		) => {
 			const storeQueryName =
-				options?.name ??
-				crypto.getRandomValues(new Uint32Array(1))[0].toString()
+				options?.name ?? getRandomValues(1).toString()
 			const storeQuery = getQueryByName(storeQueryName)
 			const { status, isLoading, isError, isSuccess, error } =
 				initStatus()
