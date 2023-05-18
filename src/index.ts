@@ -479,7 +479,7 @@ export const defineStoreRepository = <T>(
 		)
 
 		const submit = (
-			item: Ref<T | undefined> | T,
+			item: Ref<T | undefined> | T | undefined,
 			params: Ref<ParamMap> | ParamMap = {},
 			options?: StoreRepositorySubmitOptions<T>,
 		) => {

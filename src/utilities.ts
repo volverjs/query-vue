@@ -147,7 +147,7 @@ export function initAutoExecuteReadHandlers(
 }
 
 export function initAutoExecuteSubmitHandlers<T>(
-	item: Ref<T | undefined> | T,
+	item: Ref<T | undefined> | T | undefined,
 	params: Ref<ParamMap> | ParamMap,
 	resubmit: (
 		item?: T,
