@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fix
 
+- Status and method are properties of hash;
 - `submit()` action type check.
 
 ## [1.0.2] - 2023-05-15

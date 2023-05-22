@@ -59,7 +59,6 @@ export function initAutoExecuteReadHandlers(
 		oldValue?: ParamMap,
 		onCleanup?: (cleanupFn: () => void) => void,
 	) => void,
-	status: Ref<StoreRepositoryStatus>,
 	options: StoreRepositoryReadOptions = {},
 ) {
 	const {
@@ -138,7 +137,6 @@ export function initAutoExecuteReadHandlers(
 		})
 	}
 	const stop = () => {
-		status.value = StoreRepositoryStatus.idle
 		stopHandler?.()
 		executeOnFocunsStopHandler?.()
 		documentVisibilityStopHandler?.()
@@ -154,7 +152,6 @@ export function initAutoExecuteSubmitHandlers<T>(
 		params?: ParamMap,
 		cleanUp?: (cleanupFn: () => void) => void,
 	) => void,
-	status: Ref<StoreRepositoryStatus>,
 	options: StoreRepositorySubmitOptions<T> = {},
 ) {
 	const {
@@ -238,7 +235,6 @@ export function initAutoExecuteSubmitHandlers<T>(
 		})
 	}
 	const stop = () => {
-		status.value = StoreRepositoryStatus.idle
 		stopHandler?.()
 		executeOnFocunsStopHandler?.()
 		documentVisibilityStopHandler?.()

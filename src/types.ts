@@ -1,7 +1,11 @@
 import type { Ref } from 'vue'
+import type { StoreRepositoryMethod, StoreRepositoryStatus } from './constants'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ParamMap = Record<string, any>
+export type ParamMap<T extends string | number | symbol = string> = Record<
+	T,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	any
+>
 
 export type StoreRepositoryOptions<T> = {
 	keyProperty?: keyof T
@@ -14,10 +18,15 @@ export type StoreRepositoryOptions<T> = {
 export type StoreRepositoryHash<T = unknown> = {
 	keys?: T[]
 	data?: T[]
+	error?: Error
 	metadata?: ParamMap
+	abort?: (reason?: string) => void
 	timestamp: number
 	params: ParamMap
 	storeQueries: Set<string>
+	status: StoreRepositoryStatus
+	directory: boolean
+	method: StoreRepositoryMethod
 }
 
 export type StoreRepositoryQuery = {
@@ -51,5 +60,6 @@ export type StoreRepositorySubmitOptions<T> = {
 }
 
 export type StoreRepositoryRemoveOptions = {
+	name?: string
 	immediate?: boolean
 }
