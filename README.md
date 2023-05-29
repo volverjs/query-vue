@@ -1,3 +1,5 @@
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=volverjs_query-vue&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=volverjs_query-vue) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=volverjs_query-vue&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=volverjs_query-vue) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=volverjs_query-vue&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=volverjs_query-vue) [![Depfu](https://badges.depfu.com/badges/c162afcf633a46a2af31ff3399512ef7/status.svg)](https://depfu.com) [![Depfu](https://badges.depfu.com/badges/c162afcf633a46a2af31ff3399512ef7/overview.svg)](https://depfu.com/github/volverjs/query-vue?project_id=38571)
+
 <div align="center">
   
 [![volverjs](docs/static/volverjs-query.svg)](https://volverjs.github.io/query-vue)
