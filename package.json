@@ -54,7 +54,7 @@
         "@vue/test-utils": "^2.3.2",
         "copy": "^0.3.2",
         "eslint": "^8.41.0",
-        "eslint-config-prettier": "^8.8.0",
+        "eslint-config-prettier": "^9.0.0",
         "eslint-plugin-prettier": "^5.0.0",
         "eslint-plugin-vue": "^9.13.0",
         "happy-dom": "^10.0.3",
