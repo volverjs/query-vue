@@ -56,7 +56,7 @@ export type User = {
 
 /* Create an HttpClient instance */
 const httpClient = new HttpClient({
-  baseURL: 'https://my-domain.com'
+  prefixUrl: 'https://my-domain.com'
 })
 
 /* Create a RepositoryHttp instance */
