@@ -565,7 +565,8 @@ export const defineStoreRepository = <T>(
 			// execute function
 			const execute = async (newItem?: T, newParams?: ParamMap) => {
 				newItem = newItem ?? unref(item)
-				newParams = newParams ?? unref(params) ?? {}
+				newParams =
+					newParams ?? (params ? structuredClone(unref(params)) : {})
 				if (newItem) {
 					if (
 						newItem?.[keyProperty] &&
@@ -763,7 +764,8 @@ export const defineStoreRepository = <T>(
 
 			// execute function
 			const execute = async (newParams?: ParamMap) => {
-				newParams = newParams ?? unref(params) ?? {}
+				newParams =
+					newParams ?? (params ? structuredClone(unref(params)) : {})
 				const hashKey = paramsToHash(
 					newParams,
 					StoreRepositoryMethod.remove,
