@@ -438,8 +438,8 @@ export const defineStoreRepository = <T>(
 						return executeReturn()
 					}
 					if (
-						!options?.directory &&
 						data.length > 0 &&
+						!options?.directory &&
 						!data.every((item) => item[keyProperty])
 					) {
 						setHash(hashKey, {
@@ -565,8 +565,7 @@ export const defineStoreRepository = <T>(
 			// execute function
 			const execute = async (newItem?: T, newParams?: ParamMap) => {
 				newItem = newItem ?? unref(item)
-				newParams =
-					newParams ?? (params ? structuredClone(unref(params)) : {})
+				newParams = newParams ?? (params ? { ...unref(params) } : {})
 				if (newItem) {
 					if (
 						newItem?.[keyProperty] &&
@@ -764,8 +763,7 @@ export const defineStoreRepository = <T>(
 
 			// execute function
 			const execute = async (newParams?: ParamMap) => {
-				newParams =
-					newParams ?? (params ? structuredClone(unref(params)) : {})
+				newParams = newParams ?? (params ? { ...unref(params) } : {})
 				const hashKey = paramsToHash(
 					newParams,
 					StoreRepositoryMethod.remove,

@@ -67,8 +67,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/12345')
 		expect(request.method).toEqual('GET')
@@ -87,15 +87,15 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
 		execute(true)
 		expect(isLoading.value).toBe(true)
 		await flushPromises()
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		expect(fetchMock.mock.calls.length).toBe(1)
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/12345')
@@ -120,8 +120,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/12345')
 		expect(request.method).toEqual('GET')
@@ -146,8 +146,8 @@ describe('Read', () => {
 		await flushPromises()
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
-		expect(query.value.data?.[0].id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(query.value?.data?.[0].id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/12345')
 		expect(request.method).toEqual('GET')
@@ -196,7 +196,7 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/12345')
 		expect(request.method).toEqual('GET')
@@ -220,7 +220,7 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
 		// change params
 		fetchMock.mockResponseOnce(JSON.stringify([{ id: '54321' }]))
 		params.value.id = '54321'
@@ -230,9 +230,9 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('54321')
-		expect(item.value.id).toBe('54321')
-		expect(getItemByKey('12345').value.id).toBe('12345')
-		expect(getItemByKey('54321').value.id).toBe('54321')
+		expect(item.value?.id).toBe('54321')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
+		expect(getItemByKey('54321').value?.id).toBe('54321')
 		expect(fetchMock.mock.calls.length).toBe(2)
 		const firstRequest = fetchMock.mock.calls[0][0] as Request
 		expect(firstRequest.url).toEqual('https://myapi.com/v1/12345')
@@ -260,8 +260,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		stop()
 		params.value.id = '54321'
 		await nextTick()
@@ -289,8 +289,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		// change params
 		fetchMock.mockResponseOnce(JSON.stringify([{ id: '54321' }]))
 		execute({ id: '54321' })
@@ -300,8 +300,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('54321')
-		expect(item.value.id).toBe('54321')
-		expect(getItemByKey('54321').value.id).toBe('54321')
+		expect(item.value?.id).toBe('54321')
+		expect(getItemByKey('54321').value?.id).toBe('54321')
 		expect(fetchMock.mock.calls.length).toBe(2)
 		const firstRequest = fetchMock.mock.calls[0][0] as Request
 		expect(firstRequest.url).toEqual('https://myapi.com/v1/12345')
@@ -336,8 +336,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		expect(fetchMock.mock.calls.length).toBe(1)
 		const secondRequest = fetchMock.mock.calls[0][0] as Request
 		expect(secondRequest.url).toEqual('https://myapi.com/v1/12345')
@@ -353,7 +353,7 @@ describe('Read', () => {
 			'read-execute-when-computed',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
-		const params = ref({ id: undefined })
+		const params = ref<{ id?: string }>({ id: undefined })
 		const { isLoading, isSuccess, data, item } = read(params, {
 			executeWhen: computed(() => params.value.id !== undefined),
 		})
@@ -366,8 +366,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		expect(fetchMock.mock.calls.length).toBe(1)
 		const secondRequest = fetchMock.mock.calls[0][0] as Request
 		expect(secondRequest.url).toEqual('https://myapi.com/v1/12345')
@@ -383,9 +383,9 @@ describe('Read', () => {
 			'read-when-func',
 		)
 		const { read, getItemByKey } = useStoreReposotory()
-		const params = ref({ id: undefined })
+		const params = ref<{ id?: string }>({ id: undefined })
 		const { isLoading, isSuccess, data, item } = read(params, {
-			executeWhen: (params) => params.id !== undefined,
+			executeWhen: (params) => params?.id !== undefined,
 		})
 		expect(isLoading.value).toBe(false)
 		// change when
@@ -396,8 +396,8 @@ describe('Read', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		expect(fetchMock.mock.calls.length).toBe(1)
 		const secondRequest = fetchMock.mock.calls[0][0] as Request
 		expect(secondRequest.url).toEqual('https://myapi.com/v1/12345')

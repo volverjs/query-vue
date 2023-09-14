@@ -178,7 +178,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
 				[normalizedItem, normalizedParams, normalizedExecuteWhen],
-				([newItem, newParams, newWhen], oldValue, onCleanup) => {
+				([newItem, newParams, newWhen], _, onCleanup) => {
 					if (newWhen) {
 						resubmit(newItem, newParams, onCleanup)
 					}

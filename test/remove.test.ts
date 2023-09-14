@@ -49,7 +49,7 @@ describe('Remove', () => {
 		expect(request.method).toEqual('GET')
 		const removeButton = wrapper.find('button[data-test="remove-button"]')
 		expect(removeButton.exists()).toBe(true)
-		fetchMock.mockResponseOnce(undefined, {
+		fetchMock.mockResponseOnce('', {
 			status: 204,
 		})
 		removeButton.trigger('click')
@@ -76,8 +76,8 @@ describe('Remove', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 
 		// now remove the item with id '12345'
 		const {
