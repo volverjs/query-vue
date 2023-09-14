@@ -46,6 +46,9 @@ devDependencies:
   eslint-plugin-prettier:
     specifier: ^5.0.0
     version: 5.0.0(eslint-config-prettier@9.0.0)(eslint@8.49.0)(prettier@3.0.3)
+  eslint-plugin-vue:
+    specifier: ^9.17.0
+    version: 9.17.0(eslint@8.49.0)
   happy-dom:
     specifier: ^11.0.6
     version: 11.0.6
