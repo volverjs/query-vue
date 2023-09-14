@@ -1,21 +1,16 @@
 module.exports = {
+	root: true,
 	env: {
-		browser: true,
+		node: true,
 	},
-	globals: {
-		request: true,
-	},
-	parserOptions: {
-		ecmaVersion: 'latest',
-		sourceType: 'module',
-	},
+	parser: '@typescript-eslint/parser',
 	extends: [
 		'eslint:recommended',
-		'plugin:@typescript-eslint/recommended',
 		'plugin:vue/vue3-recommended',
 		'@vue/typescript/recommended',
 		'prettier',
 	],
+	plugins: ['@typescript-eslint', 'eslint-plugin-prettier'],
 	rules: {
 		'no-mixed-spaces-and-tabs': ['error', 'smart-tabs'],
 		'no-unused-vars': 'off',

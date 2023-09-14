@@ -438,8 +438,8 @@ export const defineStoreRepository = <T>(
 						return executeReturn()
 					}
 					if (
-						!options?.directory &&
 						data.length > 0 &&
+						!options?.directory &&
 						!data.every((item) => item[keyProperty])
 					) {
 						setHash(hashKey, {
