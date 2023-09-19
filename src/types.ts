@@ -11,6 +11,7 @@ export type StoreRepositoryOptions<T> = {
 	keyProperty?: keyof T
 	defaultPersistence?: number
 	defaultDebounce?: number | Ref<number>
+	defaultParameters?: ParamMap
 	hashFunction?: (str: string) => number
 	cleanUpEvery?: number
 }

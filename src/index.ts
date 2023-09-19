@@ -40,6 +40,7 @@ export const defineStoreRepository = <T>(
 	const keyProperty = options.keyProperty ?? ('id' as keyof T)
 	const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
 	const defaultDebounce = options.defaultDebounce ?? 0
+	const defaultParameters = options.defaultParameters ?? {}
 	const hashFunction = options.hashFunction ?? Hash.cyrb53
 	const cleanUpEvery = options.cleanUpEvery ?? 3 * 1000
 
@@ -409,9 +410,12 @@ export const defineStoreRepository = <T>(
 					}
 				}
 				// create new request
-				const { responsePromise, abort } = repository.read(newParams, {
-					key: hashKey,
-				})
+				const { responsePromise, abort } = repository.read(
+					{ ...defaultParameters, ...newParams },
+					{
+						key: hashKey,
+					},
+				)
 				setHash(hashKey, {
 					queryName,
 					params: newParams,
@@ -591,8 +595,16 @@ export const defineStoreRepository = <T>(
 					// create new request
 					const { responsePromise, abort } =
 						method === StoreRepositoryMethod.update
-							? repository.update(newItem, newParams, options)
-							: repository.create(newItem, newParams, options)
+							? repository.update(
+									newItem,
+									{ ...defaultParameters, ...newParams },
+									options,
+							  )
+							: repository.create(
+									newItem,
+									{ ...defaultParameters, ...newParams },
+									options,
+							  )
 
 					setHash(hashKey, {
 						queryName,
@@ -780,7 +792,7 @@ export const defineStoreRepository = <T>(
 				}
 				// create new request
 				const { responsePromise, abort } = repository.remove(
-					newParams,
+					{ ...defaultParameters, ...newParams },
 					options,
 				)
 				setHash(hashKey, {

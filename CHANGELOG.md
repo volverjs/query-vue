@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 # [1.0.3] - 2023-05-18
 
+### Added
+
+- `defaultParameters` on `StoreRepositoryOptions`
+
 ### Fix
 
 - Status and method are properties of hash;
