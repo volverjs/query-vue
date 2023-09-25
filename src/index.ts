@@ -378,6 +378,7 @@ export const defineStoreRepository = <T>(
 					newParams = params ?? {}
 				}
 				newParams = unref(newParams)
+				newParams = { ...defaultParameters, ...newParams }
 				const hashKey = paramsToHash(
 					newParams,
 					StoreRepositoryMethod.read,
@@ -410,12 +411,9 @@ export const defineStoreRepository = <T>(
 					}
 				}
 				// create new request
-				const { responsePromise, abort } = repository.read(
-					{ ...defaultParameters, ...newParams },
-					{
-						key: hashKey,
-					},
-				)
+				const { responsePromise, abort } = repository.read(newParams, {
+					key: hashKey,
+				})
 				setHash(hashKey, {
 					queryName,
 					params: newParams,
@@ -577,6 +575,7 @@ export const defineStoreRepository = <T>(
 					) {
 						newParams[keyProperty as string] = newItem[keyProperty]
 					}
+					newParams = { ...defaultParameters, ...newParams }
 					const method = newItem[keyProperty]
 						? StoreRepositoryMethod.update
 						: StoreRepositoryMethod.create
@@ -595,16 +594,8 @@ export const defineStoreRepository = <T>(
 					// create new request
 					const { responsePromise, abort } =
 						method === StoreRepositoryMethod.update
-							? repository.update(
-									newItem,
-									{ ...defaultParameters, ...newParams },
-									options,
-							  )
-							: repository.create(
-									newItem,
-									{ ...defaultParameters, ...newParams },
-									options,
-							  )
+							? repository.update(newItem, newParams, options)
+							: repository.create(newItem, newParams, options)
 
 					setHash(hashKey, {
 						queryName,
@@ -776,6 +767,7 @@ export const defineStoreRepository = <T>(
 			// execute function
 			const execute = async (newParams?: ParamMap) => {
 				newParams = newParams ?? (params ? { ...unref(params) } : {})
+				newParams = { ...defaultParameters, ...newParams }
 				const hashKey = paramsToHash(
 					newParams,
 					StoreRepositoryMethod.remove,
@@ -792,7 +784,7 @@ export const defineStoreRepository = <T>(
 				}
 				// create new request
 				const { responsePromise, abort } = repository.remove(
-					{ ...defaultParameters, ...newParams },
+					newParams,
 					options,
 				)
 				setHash(hashKey, {
