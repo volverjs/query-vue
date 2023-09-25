@@ -252,7 +252,7 @@ export const defineStoreRepository = <T>(
 					const keys: unknown[] = []
 					data.forEach((item) => {
 						const key = item[keyProperty]
-						if (key) {
+						if (key !== undefined && key !== null && key !== '') {
 							keys.push(key)
 							storeItems.value.set(key, item)
 						}
@@ -442,7 +442,12 @@ export const defineStoreRepository = <T>(
 					if (
 						data.length > 0 &&
 						!options?.directory &&
-						!data.every((item) => item[keyProperty])
+						!data.every(
+							(item) =>
+								item[keyProperty] !== undefined &&
+								item[keyProperty] !== null &&
+								item[keyProperty] !== '',
+						)
 					) {
 						setHash(hashKey, {
 							status: StoreRepositoryStatus.error,
