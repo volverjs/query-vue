@@ -472,7 +472,7 @@ export const defineStoreRepository = <T>(
 				}
 				return executeReturn()
 			}
-			const { stop, ignoreUpdates } = initAutoExecuteReadHandlers(
+			const { stop, ignoreUpdates } = initAutoExecuteReadHandlers<T>(
 				params,
 				execute,
 				{
