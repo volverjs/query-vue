@@ -367,14 +367,24 @@ export const defineStoreRepository = <T>(
 			// execute function
 			const execute = async (
 				newParamsOrForceExecute?: ParamMap | boolean,
-				newRepositoryOptions?: Parameters<typeof repository.read>[1],
+				newRepositoryOptionsOrForceExecute?: Parameters<
+					typeof repository.read
+				>[1],
 			) => {
 				let newParams: ParamMap | undefined
+				let newRepositoryOptions:
+					| Parameters<typeof repository.read>[1]
+					| undefined
 				let forceExecute = false
 				if (typeof newParamsOrForceExecute === 'boolean') {
 					forceExecute = newParamsOrForceExecute
 				} else {
 					newParams = newParamsOrForceExecute
+				}
+				if (typeof newRepositoryOptionsOrForceExecute === 'boolean') {
+					forceExecute = newRepositoryOptionsOrForceExecute
+				} else {
+					newRepositoryOptions = newRepositoryOptionsOrForceExecute
 				}
 				if (!newParams && isRef(params)) {
 					newParams = params
