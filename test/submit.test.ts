@@ -85,8 +85,8 @@ describe('Submit', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/')
 		expect(request.method).toEqual('POST')
@@ -115,8 +115,8 @@ describe('Submit', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/test')
 		expect(request.method).toEqual('POST')
@@ -140,8 +140,8 @@ describe('Submit', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.method).toEqual('PUT')
 	})
@@ -169,8 +169,8 @@ describe('Submit', () => {
 		expect(isLoading.value).toBe(false)
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
-		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(item.value?.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const request = fetchMock.mock.calls[0][0] as Request
 		expect(request.url).toEqual('https://myapi.com/v1/test/12345')
 		expect(request.method).toEqual('PUT')
@@ -197,7 +197,7 @@ describe('Submit', () => {
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].id).toBe('12345')
 		expect(item.value.id).toBe('12345')
-		expect(getItemByKey('12345').value.id).toBe('12345')
+		expect(getItemByKey('12345').value?.id).toBe('12345')
 		const postRequest = fetchMock.mock.calls[0][0] as Request
 		expect(postRequest.url).toEqual('https://myapi.com/v1/')
 		expect(postRequest.method).toEqual('POST')
@@ -212,7 +212,7 @@ describe('Submit', () => {
 		expect(isSuccess.value).toBe(true)
 		expect(data.value?.[0].name).toBe('test-modified')
 		expect(item.value.name).toBe('test-modified')
-		expect(getItemByKey('12345').value.name).toBe('test-modified')
+		expect(getItemByKey('12345').value?.name).toBe('test-modified')
 		const putRequest = fetchMock.mock.calls[1][0] as Request
 		expect(putRequest.url).toEqual('https://myapi.com/v1/12345')
 		expect(putRequest.method).toEqual('PUT')

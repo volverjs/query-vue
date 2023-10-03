@@ -7,3 +7,13 @@ export const StoreRepositoryStatus = {
 
 export type StoreRepositoryStatus =
 	(typeof StoreRepositoryStatus)[keyof typeof StoreRepositoryStatus]
+
+export const StoreRepositoryMethod = {
+	read: 'read',
+	create: 'create',
+	update: 'update',
+	remove: 'remove',
+} as const
+
+export type StoreRepositoryMethod =
+	(typeof StoreRepositoryMethod)[keyof typeof StoreRepositoryMethod]

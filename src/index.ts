@@ -24,10 +24,9 @@ import type {
 	StoreRepositorySubmitOptions,
 	StoreRepositoryRemoveOptions,
 } from './types'
-import { StoreRepositoryStatus } from './constants'
+import { StoreRepositoryMethod, StoreRepositoryStatus } from './constants'
 import {
 	clone,
-	initStatus,
 	initAutoExecuteReadHandlers,
 	initAutoExecuteSubmitHandlers,
 	getRandomValues,
@@ -41,15 +40,17 @@ export const defineStoreRepository = <T>(
 	const keyProperty = options.keyProperty ?? ('id' as keyof T)
 	const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
 	const defaultDebounce = options.defaultDebounce ?? 0
+	const defaultParameters = options.defaultParameters ?? {}
 	const hashFunction = options.hashFunction ?? Hash.cyrb53
 	const cleanUpEvery = options.cleanUpEvery ?? 3 * 1000
 
 	function paramsToHash(
 		params: ParamMap | Ref<ParamMap>,
+		method: StoreRepositoryMethod,
 		options?: { directory?: boolean },
 	) {
 		const prefix = options?.directory ? 'directory' : undefined
-		return `${prefix ? `${prefix}-` : ''}${hashFunction(
+		return `${prefix ? prefix + '-' : ''}${method}-${hashFunction(
 			JSON.stringify(unref(params)),
 		)}`
 	}
@@ -83,9 +84,17 @@ export const defineStoreRepository = <T>(
 					const query = storeQueries.value.get(
 						unref(name),
 					) as StoreRepositoryQuery
-					const { keys, data, metadata, timestamp, params } = [
-						...query.storeHashes,
-					].reduce(
+					const {
+						keys,
+						data,
+						metadata,
+						timestamp,
+						params,
+						isError,
+						isLoading,
+						isSuccess,
+						errors,
+					} = [...query.storeHashes].reduce(
 						(acc, item) => {
 							if (storeHashes.value.has(item)) {
 								const {
@@ -94,6 +103,8 @@ export const defineStoreRepository = <T>(
 									metadata,
 									timestamp,
 									params,
+									status,
+									error,
 								} = storeHashes.value.get(
 									item,
 								) as StoreRepositoryHash
@@ -108,6 +119,21 @@ export const defineStoreRepository = <T>(
 									acc.timestamp = timestamp
 									acc.params = params
 								}
+								acc.isLoading =
+									acc.isLoading ||
+									status === StoreRepositoryStatus.loading
+								acc.isError =
+									acc.isError ||
+									status === StoreRepositoryStatus.error
+								acc.isSuccess =
+									acc.isSuccess ||
+									status === StoreRepositoryStatus.success
+								if (
+									status === StoreRepositoryStatus.error &&
+									error
+								) {
+									acc.errors.push(error)
+								}
 							}
 							return acc
 						},
@@ -117,6 +143,10 @@ export const defineStoreRepository = <T>(
 							metadata: {} as ParamMap,
 							params: {} as ParamMap,
 							timestamp: 0,
+							isLoading: false,
+							isError: false,
+							isSuccess: false,
+							errors: [] as Error[],
 						},
 					)
 					if (keys.length) {
@@ -131,6 +161,10 @@ export const defineStoreRepository = <T>(
 					}
 					return {
 						...query,
+						isLoading,
+						isError,
+						isSuccess,
+						errors,
 						metadata,
 						data,
 						timestamp,
@@ -140,50 +174,85 @@ export const defineStoreRepository = <T>(
 				return undefined
 			})
 
-		const hasHash = (
+		const getHash = (
 			hash: string,
 			options?: StoreRepositoryReadOptions,
-		): boolean => {
-			const persistence = options?.persistence ?? defaultPersistence
+		): StoreRepositoryHash | undefined => {
 			// get store hash
 			const storeHash = storeHashes.value.get(hash)
-			// if store hash is not set
 			if (!storeHash) {
-				return false
+				return undefined
 			}
-			return storeHash.timestamp + persistence > Date.now()
+			const persistence = options?.persistence ?? defaultPersistence
+			// if store hash is not set
+			if (storeHash.timestamp + persistence > Date.now()) {
+				return storeHash
+			}
+			return undefined
 		}
 
 		const setHash = (
-			hash: string,
-			storeQueryName: string,
+			hashKey: string,
 			{
+				queryName,
 				data,
 				timestamp,
 				params,
 				metadata,
 				group,
 				directory,
+				status,
+				error,
+				method,
+				abort,
 			}: Partial<StoreRepositoryHash<T>> & {
+				queryName?: string
 				group?: boolean
-				directory?: boolean
 			} = {},
 		) => {
 			const storeHash =
-				storeHashes.value.get(hash) ??
+				storeHashes.value.get(hashKey) ??
 				({
 					storeQueries: new Set(),
+					status: StoreRepositoryStatus.idle,
+					directory: false,
+					method: StoreRepositoryMethod.read,
 				} as StoreRepositoryHash)
-			storeHash.storeQueries.add(storeQueryName)
-			if (timestamp || data) {
-				storeHash.timestamp = timestamp ?? new Date().getTime()
+			storeHash.timestamp = timestamp ?? new Date().getTime()
+			if (params) {
+				storeHash.params = params
+			}
+			if (metadata) {
+				storeHash.metadata = metadata
+			}
+			if (queryName) {
+				storeHash.storeQueries.add(queryName)
+			}
+			if (status) {
+				storeHash.status = status
+			}
+			if (method) {
+				storeHash.method = method
+			}
+			if (abort) {
+				storeHash.abort = abort
+			} else {
+				storeHash.abort = undefined
+			}
+			if (error) {
+				storeHash.error = error
+			} else {
+				storeHash.error = undefined
+			}
+			if (typeof directory === 'boolean') {
+				storeHash.directory = directory
 			}
 			if (data) {
-				if (!directory) {
+				if (!storeHash.directory) {
 					const keys: unknown[] = []
 					data.forEach((item) => {
 						const key = item[keyProperty]
-						if (key) {
+						if (key !== undefined && key !== null && key !== '') {
 							keys.push(key)
 							storeItems.value.set(key, item)
 						}
@@ -193,40 +262,38 @@ export const defineStoreRepository = <T>(
 					storeHash.data = data
 				}
 			}
-			if (params) {
-				storeHash.params = params
-			}
-			if (metadata) {
-				storeHash.metadata = metadata
-			}
-			// set new hash
-			storeHashes.value.set(hash, storeHash)
+			// update hash
+			storeHashes.value.set(hashKey, storeHash)
 			// update query
-			const query = storeQueries.value.get(storeQueryName)
-			if (query) {
-				// update query with new hash
-				if (group) {
-					storeQueries.value.set(storeQueryName, {
-						enabled: true,
-						storeHashes: new Set([...query.storeHashes, hash]),
-					} as StoreRepositoryQuery)
-					return hash
+			if (queryName) {
+				const storeQuery = storeQueries.value.get(queryName)
+				if (storeQuery) {
+					// update query with new hash
+					if (group) {
+						storeQueries.value.set(queryName, {
+							enabled: true,
+							storeHashes: new Set([
+								...storeQuery.storeHashes,
+								hashKey,
+							]),
+						} as StoreRepositoryQuery)
+						return
+					}
+					if (!storeQuery.storeHashes.has(hashKey)) {
+						// remove query from old storeHashes
+						storeQuery.storeHashes.forEach((item) => {
+							storeHashes.value
+								.get(item)
+								?.storeQueries.delete(queryName)
+						})
+					}
 				}
-				if (!query.storeHashes.has(hash)) {
-					// remove query from old storeHashes
-					query.storeHashes.forEach((item) => {
-						storeHashes.value
-							.get(item)
-							?.storeQueries.delete(storeQueryName)
-					})
-				}
+				// create query
+				storeQueries.value.set(queryName, {
+					enabled: true,
+					storeHashes: new Set([hashKey]),
+				} as StoreRepositoryQuery)
 			}
-			// create query
-			storeQueries.value.set(storeQueryName, {
-				enabled: true,
-				storeHashes: new Set([hash]),
-			} as StoreRepositoryQuery)
-			return hash
 		}
 
 		const disableQuery = (name: string) => {
@@ -272,18 +339,24 @@ export const defineStoreRepository = <T>(
 			params: Ref<ParamMap> | ParamMap = {},
 			options?: StoreRepositoryReadOptions,
 		) => {
-			const storeQueryName =
-				options?.name ?? getRandomValues(1).toString()
-			const storeQuery = getQueryByName(storeQueryName)
-			const { status, isLoading, isError, isSuccess, error } =
-				initStatus()
-			const hasCleanupRequest = ref(false)
+			const queryName = options?.name ?? getRandomValues(1).toString()
+			const storeQuery = getQueryByName(queryName)
+			const executeReturn = (aborted = false) => ({
+				query: storeQuery.value,
+				data: storeQuery.value?.data ?? [],
+				item: storeQuery.value?.data?.[0],
+				metadata: storeQuery.value?.metadata,
+				errors: storeQuery.value?.errors ?? [],
+				error: storeQuery.value?.errors?.[0],
+				isSuccess: storeQuery.value?.isSuccess ?? false,
+				isError: storeQuery.value?.isError ?? false,
+				aborted,
+			})
 
 			// execute function
 			const execute = async (
 				newParamsOrForceExecute?: ParamMap | boolean,
 				oldParamsOrForceExecute?: ParamMap,
-				onCleanup?: (cleanupFn: () => void) => void,
 			) => {
 				let newParams: ParamMap | undefined
 				let forceExecute = false
@@ -296,7 +369,7 @@ export const defineStoreRepository = <T>(
 					forceExecute = oldParamsOrForceExecute
 				}
 				if (!newParams && isRef(params)) {
-					newParams = unref<ParamMap>(params)
+					newParams = params
 				}
 				if (!newParams && storeQuery.value) {
 					newParams = storeQuery.value.params
@@ -304,105 +377,104 @@ export const defineStoreRepository = <T>(
 				if (!newParams) {
 					newParams = params ?? {}
 				}
-				const hash = paramsToHash(newParams, options)
+				newParams = unref(newParams)
+				newParams = { ...defaultParameters, ...newParams }
+				const hashKey = paramsToHash(
+					newParams,
+					StoreRepositoryMethod.read,
+					options,
+				)
+				const storeHash = getHash(hashKey, options)
 				// check if hash is already set
-				if (hasHash(hash, options) && !forceExecute) {
-					setHash(hash, storeQueryName, {
+				if (
+					storeHash &&
+					(storeHash.status === StoreRepositoryStatus.loading ||
+						(storeHash.status === StoreRepositoryStatus.success &&
+							!forceExecute))
+				) {
+					setHash(hashKey, {
+						queryName,
 						group: options?.group,
 					})
-					status.value = StoreRepositoryStatus.success
-					error.value = undefined
-					return {
-						query: storeQuery.value,
-						data: storeQuery.value?.data,
-						itme: storeQuery.value?.data?.[0],
-						metadata: storeQuery.value?.metadata,
-						error: error.value,
-						status: status.value,
-						isSuccess: isSuccess.value,
-						isError: isError.value,
+					return executeReturn()
+				}
+				// abort old request
+				if (!options?.group) {
+					const oldHashKey = storeQuery.value?.storeHashes
+						.values()
+						?.next().value
+					if (oldHashKey !== hashKey) {
+						const oldStoreHash = getHash(oldHashKey)
+						if (oldStoreHash) {
+							oldStoreHash.abort?.()
+						}
 					}
 				}
-				// set new hash
-				setHash(hash, storeQueryName, {
-					group: options?.group,
-				})
-				status.value = StoreRepositoryStatus.loading
+				// create new request
 				const { responsePromise, abort } = repository.read(newParams, {
-					key: hash,
+					key: hashKey,
 				})
-				if (abort && onCleanup) {
-					onCleanup(() => {
-						hasCleanupRequest.value = true
-						abort()
-					})
-				}
+				setHash(hashKey, {
+					queryName,
+					params: newParams,
+					directory: options?.directory,
+					group: options?.group,
+					status: StoreRepositoryStatus.loading,
+					abort,
+				})
 				try {
-					hasCleanupRequest.value = false
 					const { data, metadata, aborted } = await responsePromise
 					if (aborted) {
-						if (hasCleanupRequest.value) {
-							status.value = StoreRepositoryStatus.idle
-						}
-						return { status: status.value, aborted }
+						setHash(hashKey, {
+							status: StoreRepositoryStatus.idle,
+						})
+						return executeReturn(true)
 					}
 					if (!data) {
-						status.value = StoreRepositoryStatus.error
-						error.value = new Error(
-							`read: empty response is not allowed`,
-						)
-						return {
-							error: error.value,
-							status: status.value,
-							isSuccess: isSuccess.value,
-							isError: isError.value,
-						}
+						setHash(hashKey, {
+							status: StoreRepositoryStatus.error,
+							error: new Error(
+								`read: empty response is not allowed`,
+							),
+						})
+						return executeReturn()
 					}
 					if (
-						!options?.directory &&
 						data.length > 0 &&
-						!data.every((item) => item[keyProperty])
-					) {
-						status.value = StoreRepositoryStatus.error
-						error.value = new Error(
-							`read: response must contain a ${String(
-								keyProperty,
-							)} property`,
+						!options?.directory &&
+						!data.every(
+							(item) =>
+								item[keyProperty] !== undefined &&
+								item[keyProperty] !== null &&
+								item[keyProperty] !== '',
 						)
-						return {
-							error: error.value,
-							status: status.value,
-							isSuccess: isSuccess.value,
-							isError: isError.value,
-						}
+					) {
+						setHash(hashKey, {
+							status: StoreRepositoryStatus.error,
+							error: new Error(
+								`read: response must contain a ${String(
+									keyProperty,
+								)} property`,
+							),
+						})
+						return executeReturn()
 					}
-					setHash(hash, storeQueryName, {
+					setHash(hashKey, {
+						status: StoreRepositoryStatus.success,
 						data,
-						params,
 						metadata,
-						group: options?.group,
-						directory: options?.directory,
 					})
-					status.value = StoreRepositoryStatus.success
-				} catch (err) {
-					status.value = StoreRepositoryStatus.error
-					error.value = err as Error
+				} catch (error) {
+					setHash(hashKey, {
+						status: StoreRepositoryStatus.error,
+						error: error as Error,
+					})
 				}
-				return {
-					query: storeQuery.value,
-					data: storeQuery.value?.data,
-					item: storeQuery.value?.data?.[0],
-					metadata: storeQuery.value?.metadata,
-					error: error.value,
-					status: status.value,
-					isSuccess: isSuccess.value,
-					isError: isError.value,
-				}
+				return executeReturn()
 			}
-			const { stop, ignoreUpdates } = initAutoExecuteReadHandlers(
+			const { stop, ignoreUpdates } = initAutoExecuteReadHandlers<T>(
 				params,
 				execute,
-				status,
 				{
 					...options,
 					autoExecuteDebounce:
@@ -412,20 +484,20 @@ export const defineStoreRepository = <T>(
 			const cleanup = () => {
 				if (!options?.keepAlive) {
 					stop?.()
-					disableQuery(storeQueryName)
+					disableQuery(queryName)
 				}
 			}
 			tryOnUnmounted(() => {
 				cleanup()
 			})
 			return {
-				isLoading,
-				isError,
-				isSuccess,
-				error,
-				status,
 				query: storeQuery,
-				data: computed(() => storeQuery.value?.data),
+				isLoading: computed(() => storeQuery.value?.isLoading ?? false),
+				isError: computed(() => storeQuery.value?.isError ?? false),
+				isSuccess: computed(() => storeQuery.value?.isSuccess ?? false),
+				error: computed(() => storeQuery.value?.errors?.[0]),
+				errors: computed(() => storeQuery.value?.errors ?? []),
+				data: computed(() => storeQuery.value?.data ?? []),
 				item: computed(() => storeQuery.value?.data?.[0]),
 				metadata: computed(() => storeQuery.value?.metadata),
 				execute,
@@ -462,7 +534,6 @@ export const defineStoreRepository = <T>(
 							isError: toExpose.isError.value,
 							isSuccess: toExpose.isSuccess.value,
 							error: toExpose.error.value,
-							status: toExpose.status.value,
 							query: toExpose.query.value,
 							data: toExpose.data.value,
 							item: toExpose.item.value,
@@ -479,27 +550,29 @@ export const defineStoreRepository = <T>(
 		)
 
 		const submit = (
-			item: Ref<T | undefined> | T,
+			item: Ref<T | undefined> | T | undefined,
 			params: Ref<ParamMap> | ParamMap = {},
 			options?: StoreRepositorySubmitOptions<T>,
 		) => {
-			const hasCleanupRequest = ref(false)
-			const storeQueryName =
-				options?.name ?? new Date().getTime().toString()
-			const storeQuery = getQueryByName(storeQueryName)
+			const queryName = options?.name ?? new Date().getTime().toString()
+			const storeQuery = getQueryByName(queryName)
 
-			// init status
-			const { status, isLoading, isError, isSuccess, error } =
-				initStatus()
+			const executeReturn = (aborted = false) => ({
+				query: storeQuery.value,
+				data: storeQuery.value?.data ?? [],
+				item: storeQuery.value?.data?.[0],
+				metadata: storeQuery.value?.metadata,
+				errors: storeQuery.value?.errors ?? [],
+				error: storeQuery.value?.errors?.[0],
+				isSuccess: storeQuery.value?.isSuccess ?? false,
+				isError: storeQuery.value?.isError ?? false,
+				aborted,
+			})
 
 			// execute function
-			const execute = async (
-				newItem?: T,
-				newParams?: ParamMap,
-				onCleanup?: (cleanupFn: () => void) => void,
-			) => {
+			const execute = async (newItem?: T, newParams?: ParamMap) => {
 				newItem = newItem ?? unref(item)
-				newParams = newParams ?? unref(params) ?? {}
+				newParams = newParams ?? (params ? { ...unref(params) } : {})
 				if (newItem) {
 					if (
 						newItem?.[keyProperty] &&
@@ -507,62 +580,68 @@ export const defineStoreRepository = <T>(
 					) {
 						newParams[keyProperty as string] = newItem[keyProperty]
 					}
-					const hash = paramsToHash(newParams)
-					status.value = StoreRepositoryStatus.loading
-					const { responsePromise, abort } = newItem[keyProperty]
-						? repository.update(newItem, newParams, options)
-						: repository.create(newItem, newParams, options)
+					newParams = { ...defaultParameters, ...newParams }
+					const method = newItem[keyProperty]
+						? StoreRepositoryMethod.update
+						: StoreRepositoryMethod.create
+					const hashKey = paramsToHash(newParams, method)
 
-					if (abort && onCleanup) {
-						onCleanup(() => {
-							hasCleanupRequest.value = true
-							abort()
-						})
+					// abort old request
+					const oldHashKey = storeQuery.value?.storeHashes
+						.values()
+						?.next().value
+					if (oldHashKey !== hashKey) {
+						const oldStoreHash = getHash(oldHashKey)
+						if (oldStoreHash) {
+							oldStoreHash.abort?.()
+						}
 					}
+					// create new request
+					const { responsePromise, abort } =
+						method === StoreRepositoryMethod.update
+							? repository.update(newItem, newParams, options)
+							: repository.create(newItem, newParams, options)
+
+					setHash(hashKey, {
+						queryName,
+						params: newParams,
+						status: StoreRepositoryStatus.loading,
+						method,
+						abort,
+					})
 					try {
-						hasCleanupRequest.value = false
 						const { data, metadata, aborted } =
 							await responsePromise
 						if (aborted) {
-							if (hasCleanupRequest.value) {
-								status.value = StoreRepositoryStatus.idle
-							}
-							return {
-								error: error.value,
-								status: status.value,
-								aborted,
-							}
+							setHash(hashKey, {
+								status: StoreRepositoryStatus.idle,
+							})
+							return executeReturn(true)
 						}
 						if (!data) {
-							status.value = StoreRepositoryStatus.error
-							error.value = new Error(
-								`submit: empty response is not allowed`,
-							)
-							return {
-								error: error.value,
-								status: status.value,
-								isSuccess: isSuccess.value,
-								isError: isError.value,
-							}
+							setHash(hashKey, {
+								status: StoreRepositoryStatus.error,
+								error: new Error(
+									`submit: empty response is not allowed`,
+								),
+							})
+							return executeReturn()
 						}
 						const key = data[keyProperty]
 						if (!key) {
-							status.value = StoreRepositoryStatus.error
-							error.value = new Error(
-								`submit: response must contain a ${String(
-									keyProperty,
-								)} property`,
-							)
-							return {
-								error: error.value,
-								status: status.value,
-								isSuccess: isSuccess.value,
-								isError: isError.value,
-							}
+							setHash(hashKey, {
+								status: StoreRepositoryStatus.error,
+								error: new Error(
+									`submit: response must contain a ${String(
+										keyProperty,
+									)} property`,
+								),
+							})
+							return executeReturn()
 						}
-						setHash(hash, storeQueryName, {
+						setHash(hashKey, {
+							status: StoreRepositoryStatus.success,
 							data: [data],
-							params,
 							metadata,
 						})
 						if (isRef(item)) {
@@ -572,28 +651,19 @@ export const defineStoreRepository = <T>(
 								}
 							})
 						}
-						status.value = StoreRepositoryStatus.success
-					} catch (err) {
-						status.value = StoreRepositoryStatus.error
-						error.value = err as Error
+					} catch (error) {
+						setHash(hashKey, {
+							status: StoreRepositoryStatus.error,
+							error: error as Error,
+						})
 					}
 				}
-				return {
-					query: storeQuery.value,
-					data: storeQuery.value?.data,
-					item: storeQuery.value?.data?.[0],
-					metadata: storeQuery.value?.metadata,
-					error: error.value,
-					status: status.value,
-					isSuccess: isSuccess.value,
-					isError: isError.value,
-				}
+				return executeReturn()
 			}
 			const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<T>(
 				item,
 				params,
 				execute,
-				status,
 				{
 					...options,
 					autoExecuteDebounce:
@@ -603,19 +673,19 @@ export const defineStoreRepository = <T>(
 			const cleanup = () => {
 				if (!options?.keepAlive) {
 					stop?.()
-					disableQuery(storeQueryName)
+					disableQuery(queryName)
 				}
 			}
 			tryOnUnmounted(() => {
 				cleanup()
 			})
 			return {
-				isLoading,
-				isError,
-				isSuccess,
-				error,
-				status,
 				query: storeQuery,
+				isLoading: computed(() => storeQuery.value?.isLoading),
+				isError: computed(() => storeQuery.value?.isError),
+				isSuccess: computed(() => storeQuery.value?.isSuccess),
+				errors: computed(() => storeQuery.value?.errors),
+				error: computed(() => storeQuery.value?.errors?.[0]),
 				data: computed(() => storeQuery.value?.data),
 				item: computed(() => storeQuery.value?.data?.[0]),
 				metadata: computed(() => storeQuery.value?.metadata),
@@ -667,7 +737,6 @@ export const defineStoreRepository = <T>(
 							isLoading: toExpose.isLoading.value,
 							isError: toExpose.isError.value,
 							isSuccess: toExpose.isSuccess.value,
-							status: toExpose.status.value,
 							error: toExpose.error.value,
 							query: toExpose.query.value,
 							data: toExpose.data.value,
@@ -685,76 +754,99 @@ export const defineStoreRepository = <T>(
 		)
 
 		const remove = (
-			params: Ref<ParamMap> | ParamMap,
-			{ immediate = true }: StoreRepositoryRemoveOptions = {},
+			params?: Ref<ParamMap> | ParamMap,
+			{ name, immediate = true }: StoreRepositoryRemoveOptions = {},
 		) => {
-			// init status
-			const { status, isLoading, isError, isSuccess, error } =
-				initStatus()
+			const queryName = name ?? getRandomValues(1).toString()
+			const storeQuery = getQueryByName(queryName)
+			const executeReturn = (aborted = false) => ({
+				query: storeQuery.value,
+				metadata: storeQuery.value?.metadata,
+				errors: storeQuery.value?.errors,
+				error: storeQuery.value?.errors?.[0],
+				isSuccess: storeQuery.value?.isSuccess ?? false,
+				isError: storeQuery.value?.isError ?? false,
+				aborted,
+			})
 
 			// execute function
-			const execute = async () => {
-				status.value = StoreRepositoryStatus.loading
-				const normalizedParams = unref(params)
-				const { responsePromise } = repository.remove(
-					normalizedParams,
-					options,
+			const execute = async (newParams?: ParamMap) => {
+				newParams = newParams ?? (params ? { ...unref(params) } : {})
+				newParams = { ...defaultParameters, ...newParams }
+				const hashKey = paramsToHash(
+					newParams,
+					StoreRepositoryMethod.remove,
 				)
-
-				// check if keyProperty exists in params
-				if (!(keyProperty in params)) {
-					status.value = StoreRepositoryStatus.error
-					error.value = new Error(
-						`remove: params must contain a ${String(
-							keyProperty,
-						)} property`,
-					)
-					return {
-						error: error.value,
-						status: status.value,
-						isSuccess: false,
-						isError: true,
+				// abort old request
+				const oldHashKey = storeQuery.value?.storeHashes
+					.values()
+					?.next().value
+				if (oldHashKey !== hashKey) {
+					const oldStoreHash = getHash(oldHashKey)
+					if (oldStoreHash) {
+						oldStoreHash.abort?.()
 					}
 				}
+				// create new request
+				const { responsePromise, abort } = repository.remove(
+					newParams,
+					options,
+				)
+				setHash(hashKey, {
+					queryName,
+					params: newParams,
+					method: StoreRepositoryMethod.remove,
+					status: StoreRepositoryStatus.loading,
+					abort,
+				})
 				try {
 					const { aborted } = await responsePromise
 					if (aborted) {
-						status.value = StoreRepositoryStatus.idle
-						return
+						setHash(hashKey, {
+							status: StoreRepositoryStatus.idle,
+						})
+						return executeReturn(true)
 					}
-					status.value = StoreRepositoryStatus.success
-					const keysToRemove = Array.isArray(
-						normalizedParams[keyProperty as string],
-					)
-						? normalizedParams[keyProperty as string]
-						: [normalizedParams[keyProperty as string]]
-
+					setHash(hashKey, {
+						status: StoreRepositoryStatus.success,
+					})
 					// remove keys from store
+					const keysToRemove = Array.isArray(
+						newParams[keyProperty as string],
+					)
+						? newParams[keyProperty as string]
+						: [newParams[keyProperty as string]]
 					keysToRemove.forEach((key: string) => {
 						storeItems.value.delete(key)
 					})
-				} catch (err) {
-					status.value = StoreRepositoryStatus.error
-					error.value = err as Error
+				} catch (error) {
+					setHash(hashKey, {
+						status: StoreRepositoryStatus.error,
+						error: error as Error,
+					})
 				}
-				return {
-					error: error.value,
-					status: status.value,
-					isSuccess: isSuccess.value,
-					isError: isError.value,
-				}
+				return executeReturn()
 			}
 			// execute immediately
 			if (immediate) {
 				execute()
 			}
+			// cleanup
+			const cleanup = () => {
+				disableQuery(queryName)
+			}
+			tryOnUnmounted(() => {
+				cleanup()
+			})
 			return {
-				isLoading,
-				isError,
-				isSuccess,
-				error,
-				status,
+				query: storeQuery,
+				isLoading: computed(() => storeQuery.value?.isLoading),
+				isError: computed(() => storeQuery.value?.isError),
+				isSuccess: computed(() => storeQuery.value?.isSuccess),
+				errors: computed(() => storeQuery.value?.errors),
+				error: computed(() => storeQuery.value?.errors?.[0]),
 				execute,
+				cleanup,
 			}
 		}
 
@@ -783,7 +875,6 @@ export const defineStoreRepository = <T>(
 							isLoading: toExpose.isLoading.value,
 							isError: toExpose.isError.value,
 							isSuccess: toExpose.isSuccess.value,
-							status: toExpose.status.value,
 							error: toExpose.error.value,
 							execute: toExpose.execute,
 						})

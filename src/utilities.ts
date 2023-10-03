@@ -52,14 +52,36 @@ export function initStatus() {
 	return { status, isLoading, isError, isSuccess, error }
 }
 
-export function initAutoExecuteReadHandlers(
+export function initAutoExecuteReadHandlers<T>(
 	params: Ref<ParamMap> | ParamMap,
 	execute: (
 		newValue?: ParamMap,
 		oldValue?: ParamMap,
 		onCleanup?: (cleanupFn: () => void) => void,
-	) => void,
-	status: Ref<StoreRepositoryStatus>,
+	) => Promise<{
+		query:
+			| {
+					isLoading: boolean
+					isError: boolean
+					isSuccess: boolean
+					errors: Error[]
+					metadata: ParamMap
+					data: T[]
+					timestamp: number
+					params: ParamMap
+					storeHashes: Set<string>
+					enabled: boolean
+			  }
+			| undefined
+		data: T[]
+		item: T | undefined
+		metadata: ParamMap | undefined
+		errors: Error[]
+		error: Error | undefined
+		isSuccess: boolean
+		isError: boolean
+		aborted: boolean
+	}>,
 	options: StoreRepositoryReadOptions = {},
 ) {
 	const {
@@ -70,7 +92,7 @@ export function initAutoExecuteReadHandlers(
 		autoExecuteOnWindowFocus = false,
 		autoExecuteOnDocumentVisibility = false,
 	} = options
-	let ignoreUpdates: IgnoredUpdater | undefined = (cb: () => void) => cb()
+	let ignoreUpdates: IgnoredUpdater | undefined
 	let stopHandler: WatchStopHandle | undefined
 	let executeOnFocunsStopHandler: WatchStopHandle | undefined
 	let documentVisibilityStopHandler: WatchStopHandle | undefined
@@ -138,7 +160,6 @@ export function initAutoExecuteReadHandlers(
 		})
 	}
 	const stop = () => {
-		status.value = StoreRepositoryStatus.idle
 		stopHandler?.()
 		executeOnFocunsStopHandler?.()
 		documentVisibilityStopHandler?.()
@@ -147,14 +168,36 @@ export function initAutoExecuteReadHandlers(
 }
 
 export function initAutoExecuteSubmitHandlers<T>(
-	item: Ref<T | undefined> | T,
+	item: Ref<T | undefined> | T | undefined,
 	params: Ref<ParamMap> | ParamMap,
 	resubmit: (
 		item?: T,
 		params?: ParamMap,
 		cleanUp?: (cleanupFn: () => void) => void,
-	) => void,
-	status: Ref<StoreRepositoryStatus>,
+	) => Promise<{
+		query:
+			| {
+					isLoading: boolean
+					isError: boolean
+					isSuccess: boolean
+					errors: Error[]
+					metadata: ParamMap
+					data: T[]
+					timestamp: number
+					params: ParamMap
+					storeHashes: Set<string>
+					enabled: boolean
+			  }
+			| undefined
+		data: T[]
+		item: T | undefined
+		metadata: ParamMap | undefined
+		errors: Error[]
+		error: Error | undefined
+		isSuccess: boolean
+		isError: boolean
+		aborted: boolean
+	}>,
 	options: StoreRepositorySubmitOptions<T> = {},
 ) {
 	const {
@@ -165,7 +208,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 		autoExecuteOnWindowFocus = false,
 		autoExecuteOnDocumentVisibility = false,
 	} = options
-	let ignoreUpdates: IgnoredUpdater | undefined = (cb: () => void) => cb()
+	let ignoreUpdates: IgnoredUpdater | undefined
 	let stopHandler: WatchStopHandle | undefined
 	let executeOnFocunsStopHandler: WatchStopHandle | undefined
 	let documentVisibilityStopHandler: WatchStopHandle | undefined
@@ -181,7 +224,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
 				[normalizedItem, normalizedParams, normalizedExecuteWhen],
-				([newItem, newParams, newWhen], oldValue, onCleanup) => {
+				([newItem, newParams, newWhen], _, onCleanup) => {
 					if (newWhen) {
 						resubmit(newItem, newParams, onCleanup)
 					}
@@ -238,7 +281,6 @@ export function initAutoExecuteSubmitHandlers<T>(
 		})
 	}
 	const stop = () => {
-		status.value = StoreRepositoryStatus.idle
 		stopHandler?.()
 		executeOnFocunsStopHandler?.()
 		documentVisibilityStopHandler?.()
