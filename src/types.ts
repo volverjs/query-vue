@@ -49,7 +49,7 @@ export type StoreRepositoryReadOptions<
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
-	repositoryOptions?: RepositoryReadOptions
+	repositoryOptions?: Ref<RepositoryReadOptions> | RepositoryReadOptions
 }
 
 export type StoreRepositorySubmitOptions<
@@ -67,7 +67,7 @@ export type StoreRepositorySubmitOptions<
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
 	action?: StoreRepositoryAction
-	repositoryOptions?: RepositorySubmitOptions
+	repositoryOptions?: Ref<RepositorySubmitOptions> | RepositorySubmitOptions
 }
 
 export type StoreRepositoryRemoveOptions<
@@ -75,5 +75,5 @@ export type StoreRepositoryRemoveOptions<
 > = {
 	name?: string
 	immediate?: boolean
-	repositoryOptions?: RepositoryRemoveOptions
+	repositoryOptions?: Ref<RepositoryRemoveOptions> | RepositoryRemoveOptions
 }

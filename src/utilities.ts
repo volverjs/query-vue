@@ -57,7 +57,6 @@ export function initAutoExecuteReadHandlers<T>(
 	execute: (
 		newValue?: ParamMap,
 		oldValue?: ParamMap,
-		onCleanup?: (cleanupFn: () => void) => void,
 	) => Promise<{
 		query:
 			| {
@@ -107,9 +106,9 @@ export function initAutoExecuteReadHandlers<T>(
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
 				[normalizedParams, normalizedExecuteWhen],
-				([newParams, newWhen], [oldParams], onCleanup) => {
+				([newParams, newWhen]) => {
 					if (newWhen) {
-						execute(newParams, oldParams, onCleanup)
+						execute(newParams)
 					}
 				},
 				{
@@ -123,9 +122,9 @@ export function initAutoExecuteReadHandlers<T>(
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
 				normalizedExecuteWhen,
-				(newWhen, oldWhen, onCleanup) => {
+				(newWhen, oldWhen) => {
 					if (newWhen && !oldWhen) {
-						execute(unref(params) as ParamMap, undefined, onCleanup)
+						execute(unref(params) as ParamMap)
 					}
 				},
 				{
@@ -173,7 +172,6 @@ export function initAutoExecuteSubmitHandlers<T>(
 	resubmit: (
 		item?: T | T[],
 		params?: ParamMap,
-		cleanUp?: (cleanupFn: () => void) => void,
 	) => Promise<{
 		query:
 			| {
@@ -226,7 +224,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 				[normalizedPayload, normalizedParams, normalizedExecuteWhen],
 				([newPayload, newParams, newWhen], _, onCleanup) => {
 					if (newWhen) {
-						resubmit(newPayload, newParams, onCleanup)
+						resubmit(newPayload, newParams)
 					}
 				},
 				{
@@ -242,11 +240,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 				normalizedExecuteWhen,
 				(newWhen, oldWhen, onCleanup) => {
 					if (newWhen && !oldWhen) {
-						resubmit(
-							unref(payload),
-							unref(params) as ParamMap,
-							onCleanup,
-						)
+						resubmit(unref(payload), unref(params) as ParamMap)
 					}
 				},
 				{

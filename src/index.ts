@@ -343,9 +343,12 @@ export const defineStoreRepository = <T>(
 
 		const read = (
 			params: Ref<ParamMap> | ParamMap = {},
-			options?: StoreRepositoryReadOptions<
+			{
+				repositoryOptions,
+				...options
+			}: StoreRepositoryReadOptions<
 				Parameters<typeof repository.read>[1]
-			>,
+			> = {},
 		) => {
 			const queryName = options?.name ?? getRandomValues(1).toString()
 			const storeQuery = getQueryByName(queryName)
@@ -364,7 +367,7 @@ export const defineStoreRepository = <T>(
 			// execute function
 			const execute = async (
 				newParamsOrForceExecute?: ParamMap | boolean,
-				oldParamsOrForceExecute?: ParamMap,
+				newRepositoryOptions?: Parameters<typeof repository.read>[1],
 			) => {
 				let newParams: ParamMap | undefined
 				let forceExecute = false
@@ -372,9 +375,6 @@ export const defineStoreRepository = <T>(
 					forceExecute = newParamsOrForceExecute
 				} else {
 					newParams = newParamsOrForceExecute
-				}
-				if (typeof oldParamsOrForceExecute === 'boolean') {
-					forceExecute = oldParamsOrForceExecute
 				}
 				if (!newParams && isRef(params)) {
 					newParams = params
@@ -419,9 +419,11 @@ export const defineStoreRepository = <T>(
 					}
 				}
 				// create new request
+				const repositoryReadOptions =
+					newRepositoryOptions ?? unref(repositoryOptions)
 				const { responsePromise, abort } = repository.read(newParams, {
 					key: hashKey,
-					...options?.repositoryOptions,
+					...repositoryReadOptions,
 				})
 				setHash(hashKey, {
 					queryName,
@@ -560,10 +562,13 @@ export const defineStoreRepository = <T>(
 		const submit = (
 			payload: Ref<T | T[] | undefined> | T | T[] | undefined,
 			params: Ref<ParamMap> | ParamMap = {},
-			options?: StoreRepositorySubmitOptions<
+			{
+				repositoryOptions,
+				...options
+			}: StoreRepositorySubmitOptions<
 				T,
 				Parameters<typeof repository.create>[2]
-			>,
+			> = {},
 		) => {
 			const queryName = options?.name ?? new Date().getTime().toString()
 			const storeQuery = getQueryByName(queryName)
@@ -581,7 +586,11 @@ export const defineStoreRepository = <T>(
 			})
 
 			// execute function
-			const execute = async (newData?: T | T[], newParams?: ParamMap) => {
+			const execute = async (
+				newData?: T | T[],
+				newParams?: ParamMap,
+				newRepositoryOptions?: Parameters<typeof repository.create>[2],
+			) => {
 				newData = newData ?? unref(payload)
 				newParams = newParams ?? (params ? { ...unref(params) } : {})
 				if (
@@ -627,17 +636,19 @@ export const defineStoreRepository = <T>(
 					}
 				}
 				// create new request
+				const repositorySubmitOptions =
+					newRepositoryOptions ?? unref(repositoryOptions)
 				const { responsePromise, abort } =
 					action === StoreRepositoryAction.update
 						? repository.update(
 								newData,
 								newParams,
-								options?.repositoryOptions,
+								repositorySubmitOptions,
 						  )
 						: repository.create(
 								newData,
 								newParams,
-								options?.repositoryOptions,
+								repositorySubmitOptions,
 						  )
 
 				setHash(hashKey, {
@@ -818,7 +829,10 @@ export const defineStoreRepository = <T>(
 			})
 
 			// execute function
-			const execute = async (newParams?: ParamMap) => {
+			const execute = async (
+				newParams?: ParamMap,
+				newRepositoryOptions?: Parameters<typeof repository.remove>[1],
+			) => {
 				newParams = newParams ?? (params ? { ...unref(params) } : {})
 				newParams = { ...defaultParameters, ...newParams }
 				const hashKey = hashParams(
@@ -836,9 +850,11 @@ export const defineStoreRepository = <T>(
 					}
 				}
 				// create new request
+				const repositoryRemoveOptions =
+					newRepositoryOptions ?? unref(repositoryOptions)
 				const { responsePromise, abort } = repository.remove(
 					newParams,
-					repositoryOptions,
+					repositoryRemoveOptions,
 				)
 				setHash(hashKey, {
 					queryName,

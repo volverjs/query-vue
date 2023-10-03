@@ -11,8 +11,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- `submit()` support for multiple items.
 - `repositoryOptions` for all methods;
+- `repositoryOptions` as last parameter of all `execute()` functions;
+- `submit()` support for multiple items.
 
 # [1.0.3] - 2023-10-03
 
