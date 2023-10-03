@@ -168,10 +168,10 @@ export function initAutoExecuteReadHandlers<T>(
 }
 
 export function initAutoExecuteSubmitHandlers<T>(
-	item: Ref<T | undefined> | T | undefined,
+	payload: Ref<T | T[] | undefined> | T | T[] | undefined,
 	params: Ref<ParamMap> | ParamMap,
 	resubmit: (
-		item?: T,
+		item?: T | T[],
 		params?: ParamMap,
 		cleanUp?: (cleanupFn: () => void) => void,
 	) => Promise<{
@@ -212,21 +212,21 @@ export function initAutoExecuteSubmitHandlers<T>(
 	let stopHandler: WatchStopHandle | undefined
 	let executeOnFocunsStopHandler: WatchStopHandle | undefined
 	let documentVisibilityStopHandler: WatchStopHandle | undefined
-	const normalizedItem = isRef(item) ? item : computed(() => item)
+	const normalizedPayload = isRef(payload) ? payload : computed(() => payload)
 	const normalizedParams = isRef(params)
 		? (params as Ref<ParamMap>)
 		: computed(() => params)
 	const normalizedExecuteWhen = isRef(executeWhen)
 		? executeWhen
-		: computed(() => executeWhen(unref(item), unref(params) as ParamMap))
+		: computed(() => executeWhen(unref(payload), unref(params) as ParamMap))
 	// auto-submit on item or params change
 	if (autoExecute) {
 		const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates } =
 			watchIgnorable(
-				[normalizedItem, normalizedParams, normalizedExecuteWhen],
-				([newItem, newParams, newWhen], _, onCleanup) => {
+				[normalizedPayload, normalizedParams, normalizedExecuteWhen],
+				([newPayload, newParams, newWhen], _, onCleanup) => {
 					if (newWhen) {
-						resubmit(newItem, newParams, onCleanup)
+						resubmit(newPayload, newParams, onCleanup)
 					}
 				},
 				{
@@ -243,7 +243,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 				(newWhen, oldWhen, onCleanup) => {
 					if (newWhen && !oldWhen) {
 						resubmit(
-							unref(item),
+							unref(payload),
 							unref(params) as ParamMap,
 							onCleanup,
 						)
@@ -259,7 +259,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 	}
 
 	if (immediate && normalizedExecuteWhen.value) {
-		resubmit(unref(item), unref(params) as ParamMap)
+		resubmit(unref(payload), unref(params) as ParamMap)
 	}
 
 	// execute on window focus

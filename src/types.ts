@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import type { StoreRepositoryMethod, StoreRepositoryStatus } from './constants'
+import type { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 
 export type ParamMap<T extends string | number | symbol = string> = Record<
 	T,
@@ -27,7 +27,7 @@ export type StoreRepositoryHash<T = unknown> = {
 	storeQueries: Set<string>
 	status: StoreRepositoryStatus
 	directory: boolean
-	method: StoreRepositoryMethod
+	action: StoreRepositoryAction
 }
 
 export type StoreRepositoryQuery = {
@@ -35,7 +35,9 @@ export type StoreRepositoryQuery = {
 	enabled: boolean
 }
 
-export type StoreRepositoryReadOptions = {
+export type StoreRepositoryReadOptions<
+	RepositoryReadOptions = Record<string, unknown>,
+> = {
 	name?: string
 	group?: boolean
 	directory?: boolean
@@ -47,20 +49,31 @@ export type StoreRepositoryReadOptions = {
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
+	repositoryOptions?: RepositoryReadOptions
 }
 
-export type StoreRepositorySubmitOptions<T> = {
+export type StoreRepositorySubmitOptions<
+	T,
+	RepositorySubmitOptions = Record<string, unknown>,
+> = {
 	name?: string
 	keepAlive?: boolean
 	immediate?: boolean
-	executeWhen?: Ref<boolean> | ((item?: T, params?: ParamMap) => boolean)
+	executeWhen?:
+		| Ref<boolean>
+		| ((payload?: T | T[], params?: ParamMap) => boolean)
 	autoExecute?: boolean
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
+	action?: StoreRepositoryAction
+	repositoryOptions?: RepositorySubmitOptions
 }
 
-export type StoreRepositoryRemoveOptions = {
+export type StoreRepositoryRemoveOptions<
+	RepositoryRemoveOptions = Record<string, unknown>,
+> = {
 	name?: string
 	immediate?: boolean
+	repositoryOptions?: RepositoryRemoveOptions
 }

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.0.0] - 2023-10-03
+
+### Changed
+
+- `@volverjs/data@2.x.x` support;
+- Hash `method` is now `action`;
+
+### Added
+
+- `submit()` support for multiple items.
+- `repositoryOptions` for all methods;
+
 # [1.0.3] - 2023-10-03
 
 ### Added
