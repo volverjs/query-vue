@@ -45,6 +45,9 @@ export type StoreRepositoryReadOptions<
 	immediate?: boolean
 	persistence?: number
 	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	resetWhen?:
+		| Ref<boolean>
+		| ((params?: ParamMap, oldParams?: ParamMap) => boolean)
 	autoExecute?: boolean
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean

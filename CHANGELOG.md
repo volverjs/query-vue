@@ -13,7 +13,9 @@ All notable changes to this project will be documented in this file.
 
 - `repositoryOptions` for all methods;
 - `repositoryOptions` as last parameter of all `execute()` functions;
-- `submit()` support for multiple items.
+- `submit()` support for multiple items;
+- `reset()` method for `read()` action;
+- `resetWhen` option for `read()` action.
 
 # [1.0.3] - 2023-10-03
 

@@ -312,6 +312,16 @@ export const defineStoreRepository = <T>(
 			}
 		}
 
+		const resetQuery = (name: string) => {
+			const query = storeQueries.value.get(name)
+			if (query) {
+				query.storeHashes.forEach((hash) => {
+					storeHashes.value.get(hash)?.storeQueries.delete(name)
+				})
+				query.storeHashes.clear()
+			}
+		}
+
 		const clearQueries = () => {
 			storeQueries.value.forEach((item, name) => {
 				if (!item.enabled) {
@@ -363,7 +373,9 @@ export const defineStoreRepository = <T>(
 				isError: storeQuery.value?.isError ?? false,
 				aborted,
 			})
-
+			const reset = () => {
+				resetQuery(queryName)
+			}
 			// execute function
 			const execute = async (
 				newParamsOrForceExecute?: ParamMap | boolean,
@@ -397,6 +409,19 @@ export const defineStoreRepository = <T>(
 				}
 				newParams = unref(newParams)
 				newParams = { ...defaultParameters, ...newParams }
+				// reset query
+				if (
+					options?.resetWhen &&
+					((isRef(options.resetWhen) && options.resetWhen.value) ||
+						(typeof options.resetWhen === 'function' &&
+							options.resetWhen(
+								newParams,
+								storeQuery.value?.params,
+							)))
+				) {
+					reset()
+				}
+				// create hash
 				const hashKey = hashParams(
 					newParams,
 					StoreRepositoryAction.read,
@@ -520,6 +545,7 @@ export const defineStoreRepository = <T>(
 				stop,
 				ignoreUpdates,
 				cleanup,
+				reset,
 			}
 		}
 
