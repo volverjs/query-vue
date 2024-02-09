@@ -211,6 +211,7 @@ export const defineStoreRepository = <T>(
 				error,
 				action,
 				abort,
+				promise,
 			}: Partial<StoreRepositoryHash<T>> & {
 				queryName?: string
 				group?: boolean
@@ -249,6 +250,11 @@ export const defineStoreRepository = <T>(
 				storeHash.error = error
 			} else {
 				storeHash.error = undefined
+			}
+			if (promise) {
+				storeHash.promise = promise
+			} else {
+				storeHash.promise = undefined
 			}
 			if (typeof directory === 'boolean') {
 				storeHash.directory = directory
@@ -435,6 +441,9 @@ export const defineStoreRepository = <T>(
 						(storeHash.status === StoreRepositoryStatus.success &&
 							!forceExecute))
 				) {
+					if (storeHash.promise) {
+						await storeHash.promise
+					}
 					setHash(hashKey, {
 						queryName,
 						group: options?.group,
@@ -467,6 +476,7 @@ export const defineStoreRepository = <T>(
 					group: options?.group,
 					status: StoreRepositoryStatus.loading,
 					abort,
+					promise: responsePromise,
 				})
 				try {
 					const { data, metadata, aborted } = await responsePromise
@@ -680,12 +690,12 @@ export const defineStoreRepository = <T>(
 								newData,
 								newParams,
 								repositorySubmitOptions,
-						  )
+							)
 						: repository.create(
 								newData,
 								newParams,
 								repositorySubmitOptions,
-						  )
+							)
 
 				setHash(hashKey, {
 					queryName,

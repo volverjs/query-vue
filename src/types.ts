@@ -21,6 +21,7 @@ export type StoreRepositoryHash<T = unknown> = {
 	data?: T[]
 	error?: Error
 	metadata?: ParamMap
+	promise?: Promise<unknown>
 	abort?: (reason?: string) => void
 	timestamp: number
 	params: ParamMap
