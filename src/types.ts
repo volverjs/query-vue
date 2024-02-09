@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import type { Ref, Raw } from 'vue'
 import type { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 
 export type ParamMap<T extends string | number | symbol = string> = Record<
@@ -81,3 +81,5 @@ export type StoreRepositoryRemoveOptions<
 	immediate?: boolean
 	repositoryOptions?: Ref<RepositoryRemoveOptions> | RepositoryRemoveOptions
 }
+
+export type GetInnerRaw<X> = X extends Raw<infer I> ? I : never
