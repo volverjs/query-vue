@@ -1,6 +1,7 @@
 import {
 	type Ref,
 	type PropType,
+	type Raw,
 	computed,
 	isRef,
 	ref,
@@ -23,6 +24,7 @@ import type {
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
 	StoreRepositoryRemoveOptions,
+	GetInnerRaw,
 } from './types'
 import { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 import {
@@ -1009,7 +1011,49 @@ export const defineStoreRepository = <T>(
 			getItemByKey,
 			getItemsByKeys,
 			cleanHashes,
-			ReadProvider,
+			ReadProvider: ReadProvider as Raw<
+				/**
+				 * An hack to add types to the default slot
+				 */
+				GetInnerRaw<typeof ReadProvider> & {
+					new (): {
+						$slots: {
+							default: (_: {
+								isLoading: boolean
+								isError: boolean
+								isSuccess: boolean
+								error: Error | undefined
+								query: StoreRepositoryQuery | undefined
+								data: T[]
+								item: T | undefined
+								metadata: ParamMap | undefined
+								execute: (
+									newParamsOrForceExecute?:
+										| ParamMap
+										| boolean,
+									newRepositoryOptionsOrForceExecute?: Parameters<
+										typeof repository.read
+									>[1],
+								) => Promise<{
+									query: StoreRepositoryQuery | undefined
+									data: T[]
+									item: T | undefined
+									metadata: ParamMap | undefined
+									errors: Error[]
+									error: Error | undefined
+									isSuccess: boolean
+									isError: boolean
+									aborted: boolean
+								}>
+								stop: () => void
+								ignoreUpdates: (callback: () => void) => void
+								cleanup: () => void
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
+							}) => any
+						}
+					}
+				}
+			>,
 			SubmitProvider,
 			RemoveProvider,
 		}
