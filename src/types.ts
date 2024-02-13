@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import type { Ref, Raw } from 'vue'
 import type { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 
 export type ParamMap<T extends string | number | symbol = string> = Record<
@@ -21,6 +21,7 @@ export type StoreRepositoryHash<T = unknown> = {
 	data?: T[]
 	error?: Error
 	metadata?: ParamMap
+	promise?: Promise<unknown>
 	abort?: (reason?: string) => void
 	timestamp: number
 	params: ParamMap
@@ -45,6 +46,9 @@ export type StoreRepositoryReadOptions<
 	immediate?: boolean
 	persistence?: number
 	executeWhen?: Ref<boolean> | ((params?: ParamMap) => boolean)
+	resetWhen?:
+		| Ref<boolean>
+		| ((params?: ParamMap, oldParams?: ParamMap) => boolean)
 	autoExecute?: boolean
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
@@ -77,3 +81,5 @@ export type StoreRepositoryRemoveOptions<
 	immediate?: boolean
 	repositoryOptions?: Ref<RepositoryRemoveOptions> | RepositoryRemoveOptions
 }
+
+export type GetInnerRaw<X> = X extends Raw<infer I> ? I : never

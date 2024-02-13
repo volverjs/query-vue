@@ -1,6 +1,7 @@
 import {
 	type Ref,
 	type PropType,
+	type Raw,
 	computed,
 	isRef,
 	ref,
@@ -23,6 +24,7 @@ import type {
 	StoreRepositoryReadOptions,
 	StoreRepositorySubmitOptions,
 	StoreRepositoryRemoveOptions,
+	GetInnerRaw,
 } from './types'
 import { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 import {
@@ -211,6 +213,7 @@ export const defineStoreRepository = <T>(
 				error,
 				action,
 				abort,
+				promise,
 			}: Partial<StoreRepositoryHash<T>> & {
 				queryName?: string
 				group?: boolean
@@ -249,6 +252,11 @@ export const defineStoreRepository = <T>(
 				storeHash.error = error
 			} else {
 				storeHash.error = undefined
+			}
+			if (promise) {
+				storeHash.promise = promise
+			} else {
+				storeHash.promise = undefined
 			}
 			if (typeof directory === 'boolean') {
 				storeHash.directory = directory
@@ -312,6 +320,16 @@ export const defineStoreRepository = <T>(
 			}
 		}
 
+		const resetQuery = (name: string) => {
+			const query = storeQueries.value.get(name)
+			if (query) {
+				query.storeHashes.forEach((hash) => {
+					storeHashes.value.get(hash)?.storeQueries.delete(name)
+				})
+				query.storeHashes.clear()
+			}
+		}
+
 		const clearQueries = () => {
 			storeQueries.value.forEach((item, name) => {
 				if (!item.enabled) {
@@ -363,7 +381,9 @@ export const defineStoreRepository = <T>(
 				isError: storeQuery.value?.isError ?? false,
 				aborted,
 			})
-
+			const reset = () => {
+				resetQuery(queryName)
+			}
 			// execute function
 			const execute = async (
 				newParamsOrForceExecute?: ParamMap | boolean,
@@ -397,6 +417,19 @@ export const defineStoreRepository = <T>(
 				}
 				newParams = unref(newParams)
 				newParams = { ...defaultParameters, ...newParams }
+				// reset query
+				if (
+					options?.resetWhen &&
+					((isRef(options.resetWhen) && options.resetWhen.value) ||
+						(typeof options.resetWhen === 'function' &&
+							options.resetWhen(
+								newParams,
+								storeQuery.value?.params,
+							)))
+				) {
+					reset()
+				}
+				// create hash
 				const hashKey = hashParams(
 					newParams,
 					StoreRepositoryAction.read,
@@ -410,6 +443,9 @@ export const defineStoreRepository = <T>(
 						(storeHash.status === StoreRepositoryStatus.success &&
 							!forceExecute))
 				) {
+					if (storeHash.promise) {
+						await storeHash.promise
+					}
 					setHash(hashKey, {
 						queryName,
 						group: options?.group,
@@ -442,6 +478,7 @@ export const defineStoreRepository = <T>(
 					group: options?.group,
 					status: StoreRepositoryStatus.loading,
 					abort,
+					promise: responsePromise,
 				})
 				try {
 					const { data, metadata, aborted } = await responsePromise
@@ -520,6 +557,7 @@ export const defineStoreRepository = <T>(
 				stop,
 				ignoreUpdates,
 				cleanup,
+				reset,
 			}
 		}
 
@@ -654,12 +692,12 @@ export const defineStoreRepository = <T>(
 								newData,
 								newParams,
 								repositorySubmitOptions,
-						  )
+							)
 						: repository.create(
 								newData,
 								newParams,
 								repositorySubmitOptions,
-						  )
+							)
 
 				setHash(hashKey, {
 					queryName,
@@ -973,7 +1011,49 @@ export const defineStoreRepository = <T>(
 			getItemByKey,
 			getItemsByKeys,
 			cleanHashes,
-			ReadProvider,
+			ReadProvider: ReadProvider as Raw<
+				/**
+				 * An hack to add types to the default slot
+				 */
+				GetInnerRaw<typeof ReadProvider> & {
+					new (): {
+						$slots: {
+							default: (_: {
+								isLoading: boolean
+								isError: boolean
+								isSuccess: boolean
+								error: Error | undefined
+								query: StoreRepositoryQuery | undefined
+								data: T[]
+								item: T | undefined
+								metadata: ParamMap | undefined
+								execute: (
+									newParamsOrForceExecute?:
+										| ParamMap
+										| boolean,
+									newRepositoryOptionsOrForceExecute?: Parameters<
+										typeof repository.read
+									>[1],
+								) => Promise<{
+									query: StoreRepositoryQuery | undefined
+									data: T[]
+									item: T | undefined
+									metadata: ParamMap | undefined
+									errors: Error[]
+									error: Error | undefined
+									isSuccess: boolean
+									isError: boolean
+									aborted: boolean
+								}>
+								stop: () => void
+								ignoreUpdates: (callback: () => void) => void
+								cleanup: () => void
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
+							}) => any
+						}
+					}
+				}
+			>,
 			SubmitProvider,
 			RemoveProvider,
 		}
