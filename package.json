@@ -1,7 +1,7 @@
 {
     "name": "@volverjs/query-vue",
     "description": "Repository pattern applied to a pinia store.",
-    "author": "24/Consulting",
+    "author": "8 Wave",
     "license": "MIT",
     "keywords": [
         "repository",
