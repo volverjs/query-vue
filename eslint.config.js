@@ -1,4 +1,4 @@
-module.exports = {
+export default {
 	root: true,
 	env: {
 		browser: true,
@@ -22,4 +22,5 @@ module.exports = {
 		'sort-imports': 'off',
 	},
 	ignorePatterns: ['**/node_modules/**', '**/*.cjs'],
+	ignore: ['.vscode', 'dist', 'coverage', 'node', 'test/*.js'],
 }

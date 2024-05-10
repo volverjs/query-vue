@@ -657,7 +657,9 @@ export const defineStoreRepository = <T>(
 				newParams = { ...defaultParameters, ...newParams }
 
 				// action
-				let action: StoreRepositoryAction | undefined = options?.action
+				let action: StoreRepositoryAction | undefined = unref(
+					options?.action,
+				)
 				if (!action) {
 					if (!Array.isArray(newData)) {
 						action = checkKeyValue(newData[keyProperty])
