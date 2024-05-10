@@ -70,7 +70,7 @@ export type StoreRepositorySubmitOptions<
 	autoExecuteDebounce?: number | Ref<number>
 	autoExecuteOnWindowFocus?: boolean
 	autoExecuteOnDocumentVisibility?: boolean
-	action?: StoreRepositoryAction
+	action?: Ref<StoreRepositoryAction> | StoreRepositoryAction
 	repositoryOptions?: Ref<RepositorySubmitOptions> | RepositorySubmitOptions
 }
 
