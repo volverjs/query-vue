@@ -1,11 +1,11 @@
 <div align="center">
-  
+
 [![volverjs](docs/static/volverjs-query.svg)](https://volverjs.github.io/query-vue)
 
 ## @volverjs/query-vue
 
 `repository` `pinia` `store` `vue3` `read` `submit`
-  
+
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=volverjs_query-vue&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=volverjs_query-vue) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=volverjs_query-vue&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=volverjs_query-vue) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=volverjs_query-vue&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=volverjs_query-vue) [![Depfu](https://badges.depfu.com/badges/c162afcf633a46a2af31ff3399512ef7/status.svg)](https://depfu.com) [![Depfu](https://badges.depfu.com/badges/c162afcf633a46a2af31ff3399512ef7/overview.svg)](https://depfu.com/github/volverjs/query-vue?project_id=38571)
 
 <br>
@@ -50,13 +50,13 @@ import { HttpClient, RepositoryHttp } from '@volverjs/data'
 
 /* Define an User type */
 export type User = {
-  id?: number
-  username: string
+    id?: number
+    username: string
 }
 
 /* Create an HttpClient instance */
 const httpClient = new HttpClient({
-  prefixUrl: 'https://my-domain.com'
+    prefixUrl: 'https://my-domain.com'
 })
 
 /* Create a RepositoryHttp instance */
@@ -64,9 +64,9 @@ const usersRepository = new RepositoryHttp<User>(httpClient, 'users/:id?')
 
 /* Create a store repository composable */
 export const useUsersStore = defineStoreRepository(
-  usersRepository,
-  // the store name
-  'users'
+    usersRepository,
+    // the store name
+    'users'
 )
 ```
 
@@ -78,27 +78,31 @@ In a component you can use the `useUsersStore()` composable to get store actions
 
 ```vue
 <script setup lang="ts">
-  import { useUsersStore } from './user-store'
+import { useUsersStore } from './user-store'
 
-  const { read } = useUsersStore()
-  /*
+const { read } = useUsersStore()
+/*
    * With HttpRepository `read()` execute a
    * GET request to https://my-domain.com/users
    */
-  const { data, isLoading, isError } = read()
+const { data, isLoading, isError } = read()
 </script>
 
 <template>
-  <div v-if="isLoading">Loading...</div>
-  <div v-else-if="isError">An error occurred! 😭</div>
-  <div v-else>
-    <h1>Users</h1>
-    <ul>
-      <li v-for="user in data" :key="user.id">
-        {{ user.username }}
-      </li>
-    </ul>
-  </div>
+    <div v-if="isLoading">
+        Loading...
+    </div>
+    <div v-else-if="isError">
+        An error occurred! 😭
+    </div>
+    <div v-else>
+        <h1>Users</h1>
+        <ul>
+            <li v-for="user in data" :key="user.id">
+                {{ user.username }}
+            </li>
+        </ul>
+    </div>
 </template>
 ```
 
@@ -106,32 +110,32 @@ In a component you can use the `useUsersStore()` composable to get store actions
 
 ```ts
 const {
-  /* Reactive boolean that indicates if the request is loading */
-  isLoading,
-  /* Reactive boolean that indicates if the request has failed */
-  isError,
-  /* Reactive boolean that indicates if the request has succeeded */
-  isSuccess,
-  /* Reactive error object */
-  error,
-  /* Reactive status of the request */
-  status,
-  /* Reactive query object */
-  query,
-  /* Reactive array of data returned by the repository */
-  data,
-  /* Reactive metadata object returned by the repository */
-  metadata,
-  /* Reactive first item of the `data` array */
-  item,
-  /* Function to execute the `read()` action */
-  execute,
-  /* Function to stop `autoExecute` option */
-  stop,
-  /* Function to ignore reactive parameters updates */
-  ignoreUpdates,
-  /* Function to cleanup the store repository */
-  cleanup
+    /* Reactive boolean that indicates if the request is loading */
+    isLoading,
+    /* Reactive boolean that indicates if the request has failed */
+    isError,
+    /* Reactive boolean that indicates if the request has succeeded */
+    isSuccess,
+    /* Reactive error object */
+    error,
+    /* Reactive status of the request */
+    status,
+    /* Reactive query object */
+    query,
+    /* Reactive array of data returned by the repository */
+    data,
+    /* Reactive metadata object returned by the repository */
+    metadata,
+    /* Reactive first item of the `data` array */
+    item,
+    /* Function to execute the `read()` action */
+    execute,
+    /* Function to stop `autoExecute` option */
+    stop,
+    /* Function to ignore reactive parameters updates */
+    ignoreUpdates,
+    /* Function to cleanup the store repository */
+    cleanup
 } = read()
 ```
 
@@ -141,7 +145,7 @@ const {
 
 ```ts
 const { data } = read({
-  page: 1
+    page: 1
 })
 ```
 
@@ -149,16 +153,16 @@ The parameters map can be reactive, `data` will be automatically updated on para
 
 ```ts
 const parameters = ref({
-  page: 1
+    page: 1
 })
 const { data } = read(parameters, {
-  autoExecute: true
+    autoExecute: true
 })
 
 // ...
 
 parameters.value = {
-  page: 2
+    page: 2
 }
 // `read()` will be re-executed
 ```
@@ -167,10 +171,10 @@ parameters.value = {
 
 ```ts
 const parameters = ref({
-  page: 1
+    page: 1
 })
 const { data, stop } = read(parameters, {
-  autoExecute: true
+    autoExecute: true
 })
 
 // ...
@@ -183,19 +187,19 @@ A reactive parameters update can be ignored with `ignoreUpdates` function:
 
 ```ts
 const params = ref({
-  page: 1
+    page: 1
 })
 const { data, ignoreUpdates } = read(params, {
-  autoExecute: true
+    autoExecute: true
 })
 
 // ...
 
 ignoreUpdates(() => {
-  params.value = {
-    page: 1,
-    other: 'value'
-  }
+    params.value = {
+        page: 1,
+        other: 'value'
+    }
 })
 ```
 
@@ -205,15 +209,15 @@ You can re-execute the `read()` action by calling the `execute()` method with a 
 
 ```ts
 const { data, execute } = read({
-  sort: 'name',
-  order: 'asc'
+    sort: 'name',
+    order: 'asc'
 })
 
 // ...
 
 execute({
-  sort: 'name',
-  order: 'desc'
+    sort: 'name',
+    order: 'desc'
 })
 // `read()` will be re-executed with the given parameters
 ```
@@ -222,8 +226,8 @@ Persistance can be ignored with the `force` option:
 
 ```ts
 const { data, execute } = read({
-  sort: 'name',
-  order: 'asc'
+    sort: 'name',
+    order: 'asc'
 })
 
 // ...
@@ -234,11 +238,11 @@ execute(true)
 // ...
 
 execute(
-  {
-    sort: 'name',
-    order: 'desc'
-  },
-  true
+    {
+        sort: 'name',
+        order: 'desc'
+    },
+    true
 )
 // `read()` will be re-executed with the given parameters ignoring persistance
 ```
@@ -247,13 +251,13 @@ A `read()` can be executed later with `immediate: false` option:
 
 ```ts
 const { data, execute } = read(
-  {
-    page: 1
-  },
-  {
+    {
+        page: 1
+    },
+    {
     // `read()` will not be executed
-    immediate: false
-  }
+        immediate: false
+    }
 )
 
 // ...
@@ -268,10 +272,10 @@ A `read()` can be executed when a condition is met with `executeWhen` option:
 
 ```ts
 const params = ref({
-  page: undefined
+    page: undefined
 })
 const { data, execute } = read(params, {
-  executeWhen: computed(() => params.value.page !== undefined)
+    executeWhen: computed(() => params.value.page !== undefined)
 })
 
 // ...
@@ -284,10 +288,10 @@ params.value.page = 1
 
 ```ts
 const params = ref({
-  page: undefined
+    page: undefined
 })
 const { data, execute } = read(params, {
-  executeWhen: (newParams) => newParams.page !== undefined
+    executeWhen: newParams => newParams.page !== undefined
 })
 
 // ...
@@ -302,43 +306,44 @@ params.value.page = 1
 
 ```ts
 const {
-  // ...
- } = read(
-  /* The parameters map (default: undefined) */
-  params,
-  /* The options object (default: undefined) */
-  {
-  /*
+    data
+    // ...
+} = read(
+    /* The parameters map (default: undefined) */
+    params,
+    /* The options object (default: undefined) */
+    {
+        /*
    * The name of the query (default: undefined)
    * if not defined, the query name will be generated
    */
-  name: undefined,
-  /*
+        name: undefined,
+        /*
    * Group all queries executed by the same read() action
    * and exposes all items in `data` (default: false)
    * Can be useful when you need to display a list of items
    * (ex. inifinite scroll)
    */
-  group: false,
-  /*
+        group: false,
+        /*
    * Store query results in a
    * separate directory (default: false)
    */
-  directory: false
-  /*
+        directory: false,
+        /*
    * Keep the query alive when
    * the component is unmounted (default: false)
    */
-  keepAlive: false,
-  /*
+        keepAlive: false,
+        /*
    * Execute the `read()` action immediately (default: true)
    */
-  immediate: true,
-  /*
+        immediate: true,
+        /*
    * The query cache time in milliseconds (default: 60 * 60 * 1000)
    */
-  persistence: 60 * 60 * 1000,
-  /*
+        persistence: 60 * 60 * 1000,
+        /*
    * A boolean reactive parameter (or a function) that indicates
    * when the `read()` action should be executed (default: undefined)
    * For example:
@@ -346,28 +351,29 @@ const {
    * Or:
    * `executeWhen: computed(() => parameters.value.id !== undefined)`
    */
-  executeWhen: undefined,
-  /*
+        executeWhen: undefined,
+        /*
    * Automatically execute the `read()` action
    * on reactive parameters change (default: false)
    */
-  autoExecute: false,
-  /*
+        autoExecute: false,
+        /*
    * The query auto execute throttle
    * in milliseconds (default: 0)
    */
-  autoExecuteDebounce: 0
-  /*
+        autoExecuteDebounce: 0,
+        /*
    * Automatically execute the `read()` action
    * on window focus (default: false)
    */
-  autoExecuteOnWindowFocus: false,
-  /*
+        autoExecuteOnWindowFocus: false,
+        /*
    * Automatically execute the `read()` action
    * on document visibility change (default: false)
    */
-  autoExecuteOnDocumentVisibility: false,
-})
+        autoExecuteOnDocumentVisibility: false,
+    }
+)
 ```
 
 ## Submit
@@ -376,22 +382,28 @@ const {
 
 ```vue
 <script setup lang="ts">
-  import { useUsersStore } from './user-store'
+import { useUsersStore } from './user-store'
 
-  const { submit } = useUsersStore()
-  /*
+const { submit } = useUsersStore()
+/*
    * With HttpRepository `submit()` execute a
    * POST request to https://my-domain.com/users
    */
-  const { isLoading, isError, isSuccess } = submit({
+const { isLoading, isError, isSuccess } = submit({
     username: 'john.doe'
-  })
+})
 </script>
 
 <template>
-  <div v-if="isLoading">Loading...</div>
-  <div v-else-if="isError">An error occurred! 😭</div>
-  <div v-else-if="isSuccess">Submit success! 🎉</div>
+    <div v-if="isLoading">
+        Loading...
+    </div>
+    <div v-else-if="isError">
+        An error occurred! 😭
+    </div>
+    <div v-else-if="isSuccess">
+        Submit success! 🎉
+    </div>
 </template>
 ```
 
@@ -399,32 +411,32 @@ const {
 
 ```ts
 const {
-  /* Reactive boolean that indicates if the request is loading */
-  isLoading,
-  /* Reactive boolean that indicates if the request has failed */
-  isError,
-  /* Reactive boolean that indicates if the request has succeeded */
-  isSuccess,
-  /* Reactive error object */
-  error,
-  /* Reactive status of the request */
-  status,
-  /* Reactive query object */
-  query,
-  /* Reactive array of data returned by the repository */
-  data,
-  /* Reactive metadata object returned by the repository */
-  metadata,
-  /* Reactive first item of the `data` array */
-  item,
-  /* Function to execute the `submit()` action */
-  execute,
-  /* Function to stop `autoExecute` option */
-  stop,
-  /* Function to ignore reactive parameters updates */
-  ignoreUpdates,
-  /* Function to cleanup the store repository */
-  cleanup
+    /* Reactive boolean that indicates if the request is loading */
+    isLoading,
+    /* Reactive boolean that indicates if the request has failed */
+    isError,
+    /* Reactive boolean that indicates if the request has succeeded */
+    isSuccess,
+    /* Reactive error object */
+    error,
+    /* Reactive status of the request */
+    status,
+    /* Reactive query object */
+    query,
+    /* Reactive array of data returned by the repository */
+    data,
+    /* Reactive metadata object returned by the repository */
+    metadata,
+    /* Reactive first item of the `data` array */
+    item,
+    /* Function to execute the `submit()` action */
+    execute,
+    /* Function to stop `autoExecute` option */
+    stop,
+    /* Function to ignore reactive parameters updates */
+    ignoreUpdates,
+    /* Function to cleanup the store repository */
+    cleanup
 } = submit()
 ```
 
@@ -434,29 +446,30 @@ const {
 
 ```ts
 const {
-  // ...
+    isSuccess
+    // ...
 } = submit(
-  /* The submit payload (required) */
-  payload,
-  /* The parameters map (default: undefined) */
-  params,
-  /* The options object (default: undefined) */
-  {
-  /*
+    /* The submit payload (required) */
+    payload,
+    /* The parameters map (default: undefined) */
+    params,
+    /* The options object (default: undefined) */
+    {
+        /*
    * The name of the query (default: undefined)
    * if not defined, the query name will be generated
    */
-  name: undefined,
-  /*
+        name: undefined,
+        /*
    * Keep the query alive when
    * the component is unmounted (default: false)
    */
-  keepAlive: false,
-  /*
+        keepAlive: false,
+        /*
    * Execute the `submit()` action immediately (default: true)
    */
-  immediate: true,
-  /*
+        immediate: true,
+        /*
    * A boolean reactive parameter (or a function) that indicates
    * when the `submit()` action should be executed (default: undefined)
    * For example:
@@ -464,58 +477,67 @@ const {
    * Or:
    * `executeWhen: computed(() => parameters.value.id !== undefined)`
    */
-  executeWhen: undefined,
-  /*
+        executeWhen: undefined,
+        /*
    * Automatically execute the `submit()` action
    * on reactive parameters change (default: false)
    */
-  autoExecute: false,
-  /*
+        autoExecute: false,
+        /*
    * The query auto execute throttle
    * in milliseconds (default: 0)
    */
-  autoExecuteDebounce: 0
-  /*
+        autoExecuteDebounce: 0,
+        /*
    * Automatically execute the `submit()` action
    * on window focus (default: false)
    */
-  autoExecuteOnWindowFocus: false,
-  /*
+        autoExecuteOnWindowFocus: false,
+        /*
    * Automatically execute the `submit()` action
    * on document visibility change (default: false)
    */
-  autoExecuteOnDocumentVisibility: false,
-})
+        autoExecuteOnDocumentVisibility: false,
+    }
+)
 ```
 
 As `read()` also `submit()` can be executed later too with `immediate: false` option:
 
 ```vue
 <script setup lang="ts">
-  import { ref } from 'vue'
-  import { type User, useUsersStore } from './user-store'
+import { ref } from 'vue'
+import { type User, useUsersStore } from './user-store'
 
-  const user = ref<User>({
+const user = ref<User>({
     username: ''
-  })
-  const { submit } = useUsersStore()
-  const { isLoading, isError, isSuccess, execute } = submit(user, undefined, {
+})
+const { submit } = useUsersStore()
+const { isLoading, isError, isSuccess, execute } = submit(user, undefined, {
     // `submit()` will not be executed immediately
     immediate: false
-  })
+})
 </script>
 
 <template>
-  <div v-if="isLoading">Loading...</div>
-  <div v-else-if="isError">An error occurred! 😭</div>
-  <div v-else-if="isSuccess">New user created! 🎉</div>
-  <div v-else>
-    <h1>Create User</h1>
-    <form @submit.prevent="execute()">
-      <input v-model="user.username" type="text" name="username" placeholder="Insert username" />
-      <button type="submit">Submit</button>
-    </forml>
-  </div>
+    <div v-if="isLoading">
+        Loading...
+    </div>
+    <div v-else-if="isError">
+        An error occurred! 😭
+    </div>
+    <div v-else-if="isSuccess">
+        New user created! 🎉
+    </div>
+    <div v-else>
+        <h1>Create User</h1>
+        <form @submit.prevent="execute()">
+            <input v-model="user.username" type="text" name="username" placeholder="Insert username">
+            <button type="submit">
+                Submit
+            </button>
+        </form>
+    </div>
 </template>
 ```
 
@@ -525,23 +547,29 @@ As `read()` also `submit()` can be executed later too with `immediate: false` op
 
 ```vue
 <script setup lang="ts">
-  import { useUsersStore } from './user-store'
+import { useUsersStore } from './user-store'
 
-  const { remove } = useUsersStore()
-  /*
+const { remove } = useUsersStore()
+/*
    * With HttpRepository `remove()` execute a
    * DELETE request to https://my-domain.com/users
    */
-  const { isLoading, isError, isSuccess } = remove({
+const { isLoading, isError, isSuccess } = remove({
     // "id" or other "keyProperty" field
     id: '123-321'
-  })
+})
 </script>
 
 <template>
-  <div v-if="isLoading">Loading...</div>
-  <div v-else-if="isError">An error occurred! 😭</div>
-  <div v-else-if="isSuccess">Delete success! 🎉</div>
+    <div v-if="isLoading">
+        Loading...
+    </div>
+    <div v-else-if="isError">
+        An error occurred! 😭
+    </div>
+    <div v-else-if="isSuccess">
+        Delete success! 🎉
+    </div>
 </template>
 ```
 
@@ -549,20 +577,20 @@ As `read()` also `submit()` can be executed later too with `immediate: false` op
 
 ```ts
 const {
-  /* Reactive boolean that indicates if the request is loading */
-  isLoading,
-  /* Reactive boolean that indicates if the request has failed */
-  isError,
-  /* Reactive boolean that indicates if the request has succeeded */
-  isSuccess,
-  /* Reactive error object */
-  error,
-  /* Reactive status of the request */
-  status
-  /* Function to execute the `remove()` action */
-  execute,
+    /* Reactive boolean that indicates if the request is loading */
+    isLoading,
+    /* Reactive boolean that indicates if the request has failed */
+    isError,
+    /* Reactive boolean that indicates if the request has succeeded */
+    isSuccess,
+    /* Reactive error object */
+    error,
+    /* Reactive status of the request */
+    status,
+    /* Function to execute the `remove()` action */
+    execute,
 } = remove({
-  // ...
+    // ...
 })
 ```
 
@@ -572,15 +600,16 @@ const {
 
 ```ts
 const {
-  // ...
+    isSuccess
+    // ...
 } = remove(
-  /* The parameters map (required) */
-  params,
-  /* The options object (default: undefined) */
-  {
+    /* The parameters map (required) */
+    params,
+    /* The options object (default: undefined) */
+    {
     /* Execute the `remove()` action immediately (default: true) */
-    immediate: true
-  }
+        immediate: true
+    }
 )
 ```
 
@@ -594,24 +623,28 @@ const {
 
 ```vue
 <script setup lang="ts">
-  import { useUsersStore } from './user-store'
+import { useUsersStore } from './user-store'
 
-  const { ReadProvider } = useUsersStore()
+const { ReadProvider } = useUsersStore()
 </script>
 
 <template>
-  <ReadProvider v-slot="{ isLoading, isError, data }">
-    <div v-if="isLoading">Loading...</div>
-    <div v-else-if="isError">An error occurred! 😭</div>
-    <div v-else>
-      <h1>Users</h1>
-      <ul>
-        <li v-for="user in data" :key="user.id">
-          {{ user.username }}
-        </li>
-      </ul>
-    </div>
-  </ReadProvider>
+    <ReadProvider v-slot="{ isLoading, isError, data }">
+        <div v-if="isLoading">
+            Loading...
+        </div>
+        <div v-else-if="isError">
+            An error occurred! 😭
+        </div>
+        <div v-else>
+            <h1>Users</h1>
+            <ul>
+                <li v-for="user in data" :key="user.id">
+                    {{ user.username }}
+                </li>
+            </ul>
+        </div>
+    </ReadProvider>
 </template>
 ```
 
@@ -619,14 +652,14 @@ const {
 
 ```vue
 <template>
-  <ReadProvider
-    v-bind="{
-      /* The parameters map (default: undefined) */
-      params,
-      /* The `read()` options object (default: undefined) */
-      options
-    }"
-  />
+    <ReadProvider
+        v-bind="{
+            /* The parameters map (default: undefined) */
+            params,
+            /* The `read()` options object (default: undefined) */
+            options,
+        }"
+    />
 </template>
 ```
 
@@ -636,33 +669,41 @@ const {
 
 ```vue
 <script setup lang="ts">
-  import { ref } from 'vue'
-  import { type User, useUsersStore } from './user-store'
+import { ref } from 'vue'
+import { type User, useUsersStore } from './user-store'
 
-  const { SubmitProvider } = useUsersStore()
-  const user = ref<User>({
+const { SubmitProvider } = useUsersStore()
+const user = ref<User>({
     username: ''
-  })
+})
 </script>
 
 <template>
-  <SubmitProvider v-model="user" v-slot="{ isLoading, isError, isSuccess, execute }">
-    <div v-if="isLoading">Loading...</div>
-    <div v-else-if="isError">An error occurred! 😭</div>
-    <div v-else-if="isSuccess">New user created! 🎉</div>
-    <div v-else>
-      <h1>Create user</h1>
-      <form @submit.prevent="execute()">
-        <input
-          v-model="user.username"
-          type="text"
-          name="username"
-          placeholder="Insert username"
-        />
-        <button type="submit">Submit</button>
-      </forml>
-    </div>
-  </SubmitProvider>
+    <SubmitProvider v-slot="{ isLoading, isError, isSuccess, execute }" v-model="user">
+        <div v-if="isLoading">
+            Loading...
+        </div>
+        <div v-else-if="isError">
+            An error occurred! 😭
+        </div>
+        <div v-else-if="isSuccess">
+            New user created! 🎉
+        </div>
+        <div v-else>
+            <h1>Create user</h1>
+            <form @submit.prevent="execute()">
+                <input
+                    v-model="user.username"
+                    type="text"
+                    name="username"
+                    placeholder="Insert username"
+                >
+                <button type="submit">
+                    Submit
+                </button>
+            </form>
+        </div>
+    </SubmitProvider>
 </template>
 ```
 
@@ -670,16 +711,16 @@ const {
 
 ```vue
 <template>
-  <SubmitProvider
-    v-bind="{
-      /* The payload (required) */
-      modelValue,
-      /* The parameters map (default: undefined) */
-      params,
-      /* The `submit()` options object (default: { immediate: false }) */
-      options
-    }"
-  />
+    <SubmitProvider
+        v-bind="{
+            /* The payload (required) */
+            modelValue,
+            /* The parameters map (default: undefined) */
+            params,
+            /* The `submit()` options object (default: { immediate: false }) */
+            options,
+        }"
+    />
 </template>
 ```
 
@@ -693,23 +734,31 @@ By default `SubmitProvider` will not execute the `submit()` action immediately, 
 
 ```vue
 <script setup lang="ts">
-  import { useUsersStore } from './user-store'
+import { useUsersStore } from './user-store'
 
-  const { RemoveProvider } = useUsersStore()
+const { RemoveProvider } = useUsersStore()
 </script>
 
 <template>
-  <RemoveProvider
-    :params="{ id: '123-321' }"
-    v-slot="{ isLoading, isError, isSuccess, execute }"
-  >
-    <div v-if="isLoading">Loading...</div>
-    <div v-else-if="isError">An error occurred! 😭</div>
-    <div v-else-if="isSuccess">Delete success! 🎉</div>
-    <div v-else>
-      <button type="button" @click="execute()">Delete</button>
-    </div>
-  </RemoveProvider>
+    <RemoveProvider
+        v-slot="{ isLoading, isError, isSuccess, execute }"
+        :params="{ id: '123-321' }"
+    >
+        <div v-if="isLoading">
+            Loading...
+        </div>
+        <div v-else-if="isError">
+            An error occurred! 😭
+        </div>
+        <div v-else-if="isSuccess">
+            Delete success! 🎉
+        </div>
+        <div v-else>
+            <button type="button" @click="execute()">
+                Delete
+            </button>
+        </div>
+    </RemoveProvider>
 </template>
 ```
 
@@ -717,14 +766,14 @@ By default `SubmitProvider` will not execute the `submit()` action immediately, 
 
 ```vue
 <template>
-  <RemoveProvider
-    v-bind="{
-      /* The parameters map (required) */
-      params,
-      /* The `remove()` options object (default: { immediate: false }) */
-      options
-    }"
-  />
+    <RemoveProvider
+        v-bind="{
+            /* The parameters map (required) */
+            params,
+            /* The `remove()` options object (default: { immediate: false }) */
+            options,
+        }"
+    />
 </template>
 ```
 
