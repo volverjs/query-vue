@@ -7,6 +7,8 @@ export type ParamMap<T extends string | number | symbol = string> = Record<
 	any
 >
 
+export type AnyKey = string | number | symbol
+
 export type StoreRepositoryOptions<T> = {
 	keyProperty?: keyof T
 	defaultPersistence?: number
