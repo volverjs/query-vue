@@ -25,6 +25,7 @@ import type {
 	StoreRepositorySubmitOptions,
 	StoreRepositoryRemoveOptions,
 	GetInnerRaw,
+	AnyKey,
 } from './types'
 import { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 import {
@@ -70,10 +71,10 @@ export const defineStoreRepository = <T>(
 			new Map(),
 		)
 
-		const getItemByKey = (key: unknown | Ref<unknown>) =>
+		const getItemByKey = (key: AnyKey | Ref<AnyKey>) =>
 			computed(() => storeItems.value.get(unref(key)))
 
-		const getItemsByKeys = (keys: unknown[] | Ref<unknown[]>) =>
+		const getItemsByKeys = (keys: AnyKey[] | Ref<AnyKey[]>) =>
 			computed(() => {
 				return unref(keys).reduce((acc: T[], key) => {
 					if (storeItems.value.get(key)) {
@@ -601,7 +602,7 @@ export const defineStoreRepository = <T>(
 							ignoreUpdates: toExpose.ignoreUpdates,
 							cleanup: toExpose.cleanup,
 						})
-						return slot ? slot : slots.default
+						return slot ?? slots.default
 					}
 				},
 			}),
@@ -850,7 +851,7 @@ export const defineStoreRepository = <T>(
 							ignoreUpdates: toExpose.ignoreUpdates,
 							cleanup: toExpose.cleanup,
 						})
-						return slot ? slot : slots.default
+						return slot ?? slots.default
 					}
 				},
 			}),
@@ -996,7 +997,7 @@ export const defineStoreRepository = <T>(
 							error: toExpose.error.value,
 							execute: toExpose.execute,
 						})
-						return slot ? slot : slots.default
+						return slot ?? slots.default
 					}
 				},
 			}),
