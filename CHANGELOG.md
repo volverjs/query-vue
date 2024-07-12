@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - `@volverjs/data@2.x.x` support;
 - Hash `method` is now `action`;
+- `cleanHashes` is now `cleanUp`.
 
 ### Added
 
@@ -15,7 +16,8 @@ All notable changes to this project will be documented in this file.
 - `repositoryOptions` as last parameter of all `execute()` functions;
 - `submit()` support for multiple items;
 - `reset()` method for `read()` action;
-- `resetWhen` option for `read()` action.
+- `resetWhen` option for `read()` action;
+- `resetQuery()` method.
 
 # [1.0.3] - 2023-10-03
 
