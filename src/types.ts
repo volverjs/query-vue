@@ -2,8 +2,8 @@ import type { Ref, Raw } from 'vue'
 import type { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 
 export type ParamMap<T extends string | number | symbol = string> = Record<
-	T,
-	any
+    T,
+    any
 >
 
 export type AnyKey = string | number | symbol
@@ -38,7 +38,7 @@ export type StoreRepositoryQuery = {
 }
 
 export type StoreRepositoryReadOptions<
-	RepositoryReadOptions = Record<string, unknown>,
+    RepositoryReadOptions = Record<string, unknown>,
 > = {
     name?: string
     group?: boolean
@@ -58,8 +58,8 @@ export type StoreRepositoryReadOptions<
 }
 
 export type StoreRepositorySubmitOptions<
-	T,
-	RepositorySubmitOptions = Record<string, unknown>,
+    T,
+    RepositorySubmitOptions = Record<string, unknown>,
 > = {
     name?: string
     keepAlive?: boolean
@@ -76,7 +76,7 @@ export type StoreRepositorySubmitOptions<
 }
 
 export type StoreRepositoryRemoveOptions<
-	RepositoryRemoveOptions = Record<string, unknown>,
+    RepositoryRemoveOptions = Record<string, unknown>,
 > = {
     name?: string
     immediate?: boolean

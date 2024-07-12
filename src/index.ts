@@ -43,7 +43,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
     const hashFunction = options.hashFunction ?? Hash.cyrb53
     const cleanUpEvery = options.cleanUpEvery ?? 3 * 1000
 
-    function hashParams(
+    function _hashParams(
         params: ParamMap | Ref<ParamMap>,
         action: StoreRepositoryAction,
         options?: { directory?: boolean },
@@ -54,7 +54,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
 		)}`
     }
 
-    function checkKeyValue(value: unknown) {
+    function _checkKeyValue(value: unknown) {
         return value !== undefined && value !== null && value !== ''
     }
 
@@ -66,6 +66,183 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
         const storeHashes: Ref<Map<string, StoreRepositoryHash>> = ref(
             new Map(),
         )
+
+        const _getHash = (
+            hash: string,
+            options?: StoreRepositoryReadOptions<
+                Parameters<typeof repository.read>[1]
+            >,
+        ): StoreRepositoryHash | undefined => {
+            // get store hash
+            const storeHash = storeHashes.value.get(hash)
+            if (!storeHash) {
+                return undefined
+            }
+            const persistence = options?.persistence ?? defaultPersistence
+            // if store hash is not set
+            if (storeHash.timestamp + persistence > Date.now()) {
+                return storeHash
+            }
+            return undefined
+        }
+
+        const _setHash = (
+            hashKey: string,
+            {
+                queryName,
+                data,
+                timestamp,
+                params,
+                metadata,
+                group,
+                directory,
+                status,
+                error,
+                action,
+                abort,
+                promise,
+            }: Partial<StoreRepositoryHash<T>> & {
+                queryName?: string
+                group?: boolean
+            } = {},
+        ) => {
+            const storeHash
+				= storeHashes.value.get(hashKey)
+				?? ({
+				    storeQueries: new Set(),
+				    status: StoreRepositoryStatus.idle,
+				    directory: false,
+				    action: StoreRepositoryAction.read,
+				} as StoreRepositoryHash)
+            storeHash.timestamp = timestamp ?? new Date().getTime()
+            if (params) {
+                storeHash.params = params
+            }
+            if (metadata) {
+                storeHash.metadata = metadata
+            }
+            if (queryName) {
+                storeHash.storeQueries.add(queryName)
+            }
+            if (status) {
+                storeHash.status = status
+            }
+            if (action) {
+                storeHash.action = action
+            }
+            if (abort) {
+                storeHash.abort = abort
+            }
+            else {
+                storeHash.abort = undefined
+            }
+            if (error) {
+                storeHash.error = error
+            }
+            else {
+                storeHash.error = undefined
+            }
+            if (promise) {
+                storeHash.promise = promise
+            }
+            else {
+                storeHash.promise = undefined
+            }
+            if (typeof directory === 'boolean') {
+                storeHash.directory = directory
+            }
+            if (data) {
+                if (!storeHash.directory) {
+                    const keyValues: unknown[] = []
+                    data.forEach((item) => {
+                        const keyValue = item[keyProperty]
+                        if (_checkKeyValue(keyValue)) {
+                            keyValues.push(keyValue)
+                            storeItems.value.set(keyValue, item)
+                        }
+                    })
+                    storeHash.keys = keyValues
+                }
+                else {
+                    storeHash.data = data
+                }
+            }
+            // update hash
+            storeHashes.value.set(hashKey, storeHash)
+            // update query
+            if (queryName) {
+                const storeQuery = storeQueries.value.get(queryName)
+                if (storeQuery) {
+                    // update query with new hash
+                    if (group) {
+                        storeQueries.value.set(queryName, {
+                            enabled: true,
+                            storeHashes: new Set([
+                                ...storeQuery.storeHashes,
+                                hashKey,
+                            ]),
+                        } as StoreRepositoryQuery)
+                        return
+                    }
+                    if (!storeQuery.storeHashes.has(hashKey)) {
+                        // remove query from old storeHashes
+                        storeQuery.storeHashes.forEach((item) => {
+                            storeHashes.value
+                                .get(item)
+                                ?.storeQueries.delete(queryName)
+                        })
+                    }
+                }
+                // create query
+                storeQueries.value.set(queryName, {
+                    enabled: true,
+                    storeHashes: new Set([hashKey]),
+                } as StoreRepositoryQuery)
+            }
+        }
+
+        const _disableQuery = (name: string) => {
+            const query = storeQueries.value.get(name)
+            if (query) {
+                storeQueries.value.set(name, {
+                    ...query,
+                    enabled: false,
+                } as StoreRepositoryQuery)
+            }
+        }
+
+        const _cleanUpQueries = () => {
+            storeQueries.value.forEach((item, name) => {
+                if (!item.enabled) {
+                    item.storeHashes.forEach((hash) => {
+                        storeHashes.value.get(hash)?.storeQueries.delete(name)
+                    })
+                    storeQueries.value.delete(name)
+                }
+            })
+        }
+
+        const _cleanUpHashes = () => {
+            storeHashes.value.forEach((item, name) => {
+                if (item.storeQueries.size === 0) {
+                    storeHashes.value.delete(name)
+                }
+            })
+        }
+
+        const cleanUp = () => {
+            _cleanUpQueries()
+            _cleanUpHashes()
+        }
+
+        if (cleanUpEvery !== undefined) {
+            const { idle } = useIdle(cleanUpEvery)
+            watch(idle, (isIdle) => {
+                if (isIdle) {
+                    cleanUp()
+                }
+            })
+        }
 
         const getItemByKey = (key: AnyKey | Ref<AnyKey>) =>
             computed(() => storeItems.value.get(unref(key)))
@@ -177,150 +354,6 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 return undefined
             })
 
-        const getHash = (
-            hash: string,
-            options?: StoreRepositoryReadOptions<
-				Parameters<typeof repository.read>[1]
-			>,
-        ): StoreRepositoryHash | undefined => {
-            // get store hash
-            const storeHash = storeHashes.value.get(hash)
-            if (!storeHash) {
-                return undefined
-            }
-            const persistence = options?.persistence ?? defaultPersistence
-            // if store hash is not set
-            if (storeHash.timestamp + persistence > Date.now()) {
-                return storeHash
-            }
-            return undefined
-        }
-
-        const setHash = (
-            hashKey: string,
-            {
-                queryName,
-                data,
-                timestamp,
-                params,
-                metadata,
-                group,
-                directory,
-                status,
-                error,
-                action,
-                abort,
-                promise,
-            }: Partial<StoreRepositoryHash<T>> & {
-                queryName?: string
-                group?: boolean
-            } = {},
-        ) => {
-            const storeHash
-				= storeHashes.value.get(hashKey)
-				?? ({
-				    storeQueries: new Set(),
-				    status: StoreRepositoryStatus.idle,
-				    directory: false,
-				    action: StoreRepositoryAction.read,
-				} as StoreRepositoryHash)
-            storeHash.timestamp = timestamp ?? new Date().getTime()
-            if (params) {
-                storeHash.params = params
-            }
-            if (metadata) {
-                storeHash.metadata = metadata
-            }
-            if (queryName) {
-                storeHash.storeQueries.add(queryName)
-            }
-            if (status) {
-                storeHash.status = status
-            }
-            if (action) {
-                storeHash.action = action
-            }
-            if (abort) {
-                storeHash.abort = abort
-            }
-            else {
-                storeHash.abort = undefined
-            }
-            if (error) {
-                storeHash.error = error
-            }
-            else {
-                storeHash.error = undefined
-            }
-            if (promise) {
-                storeHash.promise = promise
-            }
-            else {
-                storeHash.promise = undefined
-            }
-            if (typeof directory === 'boolean') {
-                storeHash.directory = directory
-            }
-            if (data) {
-                if (!storeHash.directory) {
-                    const keyValues: unknown[] = []
-                    data.forEach((item) => {
-                        const keyValue = item[keyProperty]
-                        if (checkKeyValue(keyValue)) {
-                            keyValues.push(keyValue)
-                            storeItems.value.set(keyValue, item)
-                        }
-                    })
-                    storeHash.keys = keyValues
-                }
-                else {
-                    storeHash.data = data
-                }
-            }
-            // update hash
-            storeHashes.value.set(hashKey, storeHash)
-            // update query
-            if (queryName) {
-                const storeQuery = storeQueries.value.get(queryName)
-                if (storeQuery) {
-                    // update query with new hash
-                    if (group) {
-                        storeQueries.value.set(queryName, {
-                            enabled: true,
-                            storeHashes: new Set([
-                                ...storeQuery.storeHashes,
-                                hashKey,
-                            ]),
-                        } as StoreRepositoryQuery)
-                        return
-                    }
-                    if (!storeQuery.storeHashes.has(hashKey)) {
-                        // remove query from old storeHashes
-                        storeQuery.storeHashes.forEach((item) => {
-                            storeHashes.value
-                                .get(item)
-                                ?.storeQueries.delete(queryName)
-                        })
-                    }
-                }
-                // create query
-                storeQueries.value.set(queryName, {
-                    enabled: true,
-                    storeHashes: new Set([hashKey]),
-                } as StoreRepositoryQuery)
-            }
-        }
-
-        const disableQuery = (name: string) => {
-            const query = storeQueries.value.get(name)
-            if (query) {
-                storeQueries.value.set(name, {
-                    ...query,
-                    enabled: false,
-                } as StoreRepositoryQuery)
-            }
-        }
-
         const resetQuery = (name: string) => {
             const query = storeQueries.value.get(name)
             if (query) {
@@ -331,43 +364,14 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             }
         }
 
-        const clearQueries = () => {
-            storeQueries.value.forEach((item, name) => {
-                if (!item.enabled) {
-                    item.storeHashes.forEach((hash) => {
-                        storeHashes.value.get(hash)?.storeQueries.delete(name)
-                    })
-                    storeQueries.value.delete(name)
-                }
-            })
-        }
-
-        const cleanHashes = () => {
-            storeHashes.value.forEach((item, name) => {
-                if (item.storeQueries.size === 0) {
-                    storeHashes.value.delete(name)
-                }
-            })
-        }
-
-        if (cleanUpEvery !== undefined) {
-            const { idle } = useIdle(cleanUpEvery)
-            watch(idle, (isIdle) => {
-                if (isIdle) {
-                    clearQueries()
-                    cleanHashes()
-                }
-            })
-        }
-
         const read = (
             params: Ref<ParamMap> | ParamMap = {},
             {
                 repositoryOptions,
                 ...options
             }: StoreRepositoryReadOptions<
-				Parameters<typeof repository.read>[1]
-			> = {},
+                Parameters<typeof repository.read>[1]
+            > = {},
         ) => {
             const queryName = options?.name ?? getRandomValues(1).toString()
             const storeQuery = getQueryByName(queryName)
@@ -390,7 +394,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 newParamsOrForceExecute?: ParamMap | boolean,
                 newRepositoryOptionsOrForceExecute?: Parameters<
 					typeof repository.read
-				>[1],
+                >[1],
             ) => {
                 let newParams: ParamMap | undefined
                 let newRepositoryOptions:
@@ -433,12 +437,12 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     reset()
                 }
                 // create hash
-                const hashKey = hashParams(
+                const hashKey = _hashParams(
                     newParams,
                     StoreRepositoryAction.read,
                     options,
                 )
-                const storeHash = getHash(hashKey, options)
+                const storeHash = _getHash(hashKey, options)
                 // check if hash is already set
                 if (
                     storeHash
@@ -449,7 +453,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     if (storeHash.promise) {
                         await storeHash.promise
                     }
-                    setHash(hashKey, {
+                    _setHash(hashKey, {
                         queryName,
                         group: options?.group,
                     })
@@ -461,7 +465,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         .values()
                         ?.next().value
                     if (oldHashKey !== hashKey) {
-                        const oldStoreHash = getHash(oldHashKey)
+                        const oldStoreHash = _getHash(oldHashKey)
                         if (oldStoreHash) {
                             oldStoreHash.abort?.()
                         }
@@ -474,7 +478,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     key: hashKey,
                     ...repositoryReadOptions,
                 })
-                setHash(hashKey, {
+                _setHash(hashKey, {
                     queryName,
                     params: newParams,
                     directory: options?.directory,
@@ -486,13 +490,13 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 try {
                     const { data, metadata, aborted } = await responsePromise
                     if (aborted) {
-                        setHash(hashKey, {
+                        _setHash(hashKey, {
                             status: StoreRepositoryStatus.idle,
                         })
                         return executeReturn(true)
                     }
                     if (!data) {
-                        setHash(hashKey, {
+                        _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
 								`read: empty response is not allowed`,
@@ -503,9 +507,9 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     if (
                         data.length > 0
                         && !options?.directory
-                        && !data.every(item => checkKeyValue(item[keyProperty]))
+                        && !data.every(item => _checkKeyValue(item[keyProperty]))
                     ) {
-                        setHash(hashKey, {
+                        _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
 								`read: response must contain a ${String(
@@ -515,14 +519,14 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         })
                         return executeReturn()
                     }
-                    setHash(hashKey, {
+                    _setHash(hashKey, {
                         status: StoreRepositoryStatus.success,
                         data,
                         metadata,
                     })
                 }
                 catch (error) {
-                    setHash(hashKey, {
+                    _setHash(hashKey, {
                         status: StoreRepositoryStatus.error,
                         error: error as Error,
                     })
@@ -541,7 +545,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             const cleanup = () => {
                 if (!options?.keepAlive) {
                     stop?.()
-                    disableQuery(queryName)
+                    _disableQuery(queryName)
                 }
             }
             tryOnUnmounted(() => {
@@ -575,10 +579,10 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     },
                     options: {
                         type: Object as PropType<
-							StoreRepositoryReadOptions<
-								Parameters<typeof repository.read>[1]
-							>
-						>,
+                            StoreRepositoryReadOptions<
+                                Parameters<typeof repository.read>[1]
+                            >
+                        >,
                         default: undefined,
                     },
                 },
@@ -617,9 +621,9 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 repositoryOptions,
                 ...options
             }: StoreRepositorySubmitOptions<
-				T,
-				Parameters<typeof repository.create>[2]
-			> = {},
+                T,
+                Parameters<typeof repository.create>[2]
+            > = {},
         ) => {
             const queryName = options?.name ?? new Date().getTime().toString()
             const storeQuery = getQueryByName(queryName)
@@ -652,7 +656,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 }
                 if (
                     !Array.isArray(newData)
-                    && checkKeyValue(newData[keyProperty])
+                    && _checkKeyValue(newData[keyProperty])
                     && !newParams[keyProperty as string]
                 ) {
                     newParams[keyProperty as string] = newData[keyProperty]
@@ -665,26 +669,26 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 )
                 if (!action) {
                     if (!Array.isArray(newData)) {
-                        action = checkKeyValue(newData[keyProperty])
+                        action = _checkKeyValue(newData[keyProperty])
                             ? StoreRepositoryAction.update
                             : StoreRepositoryAction.create
                     }
                     else {
                         action = newData.every(item =>
-                            checkKeyValue(item[keyProperty]),
+                            _checkKeyValue(item[keyProperty]),
                         )
                             ? StoreRepositoryAction.update
                             : StoreRepositoryAction.create
                     }
                 }
-                const hashKey = hashParams(newParams, action)
+                const hashKey = _hashParams(newParams, action)
 
                 // abort old request
                 const oldHashKey = storeQuery.value?.storeHashes
                     .values()
                     ?.next().value
                 if (oldHashKey !== hashKey) {
-                    const oldStoreHash = getHash(oldHashKey)
+                    const oldStoreHash = _getHash(oldHashKey)
                     if (oldStoreHash) {
                         oldStoreHash.abort?.()
                     }
@@ -705,7 +709,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
 					        repositorySubmitOptions,
 					    )
 
-                setHash(hashKey, {
+                _setHash(hashKey, {
                     queryName,
                     params: newParams,
                     status: StoreRepositoryStatus.loading,
@@ -715,13 +719,13 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 try {
                     const { data, metadata, aborted } = await responsePromise
                     if (aborted) {
-                        setHash(hashKey, {
+                        _setHash(hashKey, {
                             status: StoreRepositoryStatus.idle,
                         })
                         return executeReturn(true)
                     }
                     if (!data) {
-                        setHash(hashKey, {
+                        _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
 								`submit: empty response is not allowed`,
@@ -730,9 +734,9 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         return executeReturn()
                     }
                     if (
-                        !data.every(item => checkKeyValue(item[keyProperty]))
+                        !data.every(item => _checkKeyValue(item[keyProperty]))
                     ) {
-                        setHash(hashKey, {
+                        _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
 								`submit: response must contain a ${String(
@@ -742,7 +746,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         })
                         return executeReturn()
                     }
-                    setHash(hashKey, {
+                    _setHash(hashKey, {
                         status: StoreRepositoryStatus.success,
                         data,
                         metadata,
@@ -759,7 +763,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     }
                 }
                 catch (error) {
-                    setHash(hashKey, {
+                    _setHash(hashKey, {
                         status: StoreRepositoryStatus.error,
                         error: error as Error,
                     })
@@ -779,7 +783,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             const cleanup = () => {
                 if (!options?.keepAlive) {
                     stop?.()
-                    disableQuery(queryName)
+                    _disableQuery(queryName)
                 }
             }
             tryOnUnmounted(() => {
@@ -816,11 +820,11 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     },
                     options: {
                         type: Object as PropType<
-							StoreRepositorySubmitOptions<
-								T,
-								Parameters<typeof repository.create>[2]
-							>
-						>,
+                            StoreRepositorySubmitOptions<
+                                T,
+                                Parameters<typeof repository.create>[2]
+                            >
+                        >,
                         default: () => ({
                             immediate: false,
                         }),
@@ -868,8 +872,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 immediate = true,
                 repositoryOptions,
             }: StoreRepositoryRemoveOptions<
-				Parameters<typeof repository.remove>[1]
-			> = {},
+                Parameters<typeof repository.remove>[1]
+            > = {},
         ) => {
             const queryName = name ?? getRandomValues(1).toString()
             const storeQuery = getQueryByName(queryName)
@@ -890,7 +894,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             ) => {
                 newParams = newParams ?? (params ? { ...unref(params) } : {})
                 newParams = { ...defaultParameters, ...newParams }
-                const hashKey = hashParams(
+                const hashKey = _hashParams(
                     newParams,
                     StoreRepositoryAction.remove,
                 )
@@ -899,7 +903,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     .values()
                     ?.next().value
                 if (oldHashKey !== hashKey) {
-                    const oldStoreHash = getHash(oldHashKey)
+                    const oldStoreHash = _getHash(oldHashKey)
                     if (oldStoreHash) {
                         oldStoreHash.abort?.()
                     }
@@ -911,7 +915,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     newParams,
                     repositoryRemoveOptions,
                 )
-                setHash(hashKey, {
+                _setHash(hashKey, {
                     queryName,
                     params: newParams,
                     action: StoreRepositoryAction.remove,
@@ -921,12 +925,12 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 try {
                     const { aborted } = await responsePromise
                     if (aborted) {
-                        setHash(hashKey, {
+                        _setHash(hashKey, {
                             status: StoreRepositoryStatus.idle,
                         })
                         return executeReturn(true)
                     }
-                    setHash(hashKey, {
+                    _setHash(hashKey, {
                         status: StoreRepositoryStatus.success,
                     })
                     // remove keys from store
@@ -940,7 +944,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     })
                 }
                 catch (error) {
-                    setHash(hashKey, {
+                    _setHash(hashKey, {
                         status: StoreRepositoryStatus.error,
                         error: error as Error,
                     })
@@ -953,7 +957,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             }
             // cleanup
             const cleanup = () => {
-                disableQuery(queryName)
+                _disableQuery(queryName)
             }
             tryOnUnmounted(() => {
                 cleanup()
@@ -980,10 +984,10 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     },
                     options: {
                         type: Object as PropType<
-							StoreRepositoryRemoveOptions<
-								Parameters<typeof repository.remove>[1]
-							>
-						>,
+                            StoreRepositoryRemoveOptions<
+                                Parameters<typeof repository.remove>[1]
+                            >
+                        >,
                         default: () => ({
                             immediate: false,
                         }),
@@ -1017,11 +1021,12 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             getQueryByName,
             getItemByKey,
             getItemsByKeys,
-            cleanHashes,
+            cleanUp,
+            resetQuery,
             ReadProvider: ReadProvider as Raw<
-				/**
-				 * An hack to add types to the default slot
-				 */
+                /**
+                 * An hack to add types to the default slot
+                 */
                 GetInnerRaw<typeof ReadProvider> & {
 
 				    new (): {
@@ -1041,7 +1046,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
 				                        | boolean,
 				                    newRepositoryOptionsOrForceExecute?: Parameters<
 										typeof repository.read
-									>[1],
+                                    >[1],
 				                ) => Promise<{
 				                    query: StoreRepositoryQuery | undefined
 				                    data: T[]
@@ -1061,7 +1066,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
 				        }
 				    }
 			    }
-			>,
+            >,
             SubmitProvider,
             RemoveProvider,
         }

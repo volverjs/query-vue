@@ -287,7 +287,7 @@ export function initAutoExecuteSubmitHandlers<T>(
 export function getRandomValues(length: number) {
     const array = new Uint32Array(length)
     if (typeof crypto === 'undefined') {
-        // eslint-disable-next-line ts/no-var-requires, ts/no-require-imports
+        // eslint-disable-next-line ts/no-require-imports
         const webcrypto = require('node:crypto').webcrypto
         return webcrypto.getRandomValues(array)[0]
     }
