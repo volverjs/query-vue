@@ -361,6 +361,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     storeHashes.value.get(hash)?.storeQueries.delete(name)
                 })
                 query.storeHashes.clear()
+                cleanUp()
             }
         }
 
