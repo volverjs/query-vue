@@ -1,26 +1,26 @@
-import {
-    type IgnoredUpdater,
-    useDocumentVisibility,
-    useWindowFocus,
-    watchIgnorable,
-    debounceFilter,
-} from '@vueuse/core'
-import {
-    type Ref,
-    type WatchStopHandle,
-    computed,
-    ref,
-    watchEffect,
-    isRef,
-    watch,
-    unref,
-} from 'vue'
-import { StoreRepositoryStatus } from './constants'
 import type {
     ParamMap,
     StoreRepositoryReadOptions,
     StoreRepositorySubmitOptions,
 } from './types'
+import {
+    debounceFilter,
+    type IgnoredUpdater,
+    useDocumentVisibility,
+    useWindowFocus,
+    watchIgnorable,
+} from '@vueuse/core'
+import {
+    computed,
+    isRef,
+    type Ref,
+    ref,
+    unref,
+    watch,
+    watchEffect,
+    type WatchStopHandle,
+} from 'vue'
+import { StoreRepositoryStatus } from './constants'
 
 export function clone<T>(value: T): T {
     if (
@@ -60,18 +60,18 @@ export function initAutoExecuteReadHandlers<T>(
     ) => Promise<{
         query:
             | {
-			    isLoading: boolean
-			    isError: boolean
-			    isSuccess: boolean
-			    errors: Error[]
-			    metadata: ParamMap
-			    data: T[]
-			    timestamp: number
-			    params: ParamMap
-			    storeHashes: Set<string>
-			    enabled: boolean
-			  }
-			  | undefined
+                isLoading: boolean
+                isError: boolean
+                isSuccess: boolean
+                errors: Error[]
+                metadata: ParamMap
+                data: T[]
+                timestamp: number
+                params: ParamMap
+                storeHashes: Set<string>
+                enabled: boolean
+            }
+            | undefined
         data: T[]
         item: T | undefined
         metadata: ParamMap | undefined
@@ -176,18 +176,18 @@ export function initAutoExecuteSubmitHandlers<T>(
     ) => Promise<{
         query:
             | {
-			    isLoading: boolean
-			    isError: boolean
-			    isSuccess: boolean
-			    errors: Error[]
-			    metadata: ParamMap
-			    data: T[]
-			    timestamp: number
-			    params: ParamMap
-			    storeHashes: Set<string>
-			    enabled: boolean
-			  }
-			  | undefined
+                isLoading: boolean
+                isError: boolean
+                isSuccess: boolean
+                errors: Error[]
+                metadata: ParamMap
+                data: T[]
+                timestamp: number
+                params: ParamMap
+                storeHashes: Set<string>
+                enabled: boolean
+            }
+            | undefined
         data: T[]
         item: T | undefined
         metadata: ParamMap | undefined

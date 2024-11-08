@@ -1,8 +1,10 @@
 import antfu from '@antfu/eslint-config'
 
 export default antfu({
+    type: 'lib',
     typescript: {
         overrides: {
+            'ts/explicit-function-return-type': 'off',
             'ts/consistent-type-definitions': 'off',
         },
     },

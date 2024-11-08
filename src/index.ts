@@ -1,38 +1,38 @@
-import {
-    type Ref,
-    type PropType,
-    type Raw,
-    computed,
-    isRef,
-    ref,
-    unref,
-    watch,
-    defineComponent,
-    toRefs,
-    markRaw,
-    onBeforeUnmount,
-} from 'vue'
-import { useIdle, tryOnUnmounted } from '@vueuse/core'
-import { defineStore } from 'pinia'
-import { Hash } from '@volverjs/data/hash'
 import type { Repository, RepositoryHttp } from '@volverjs/data'
 import type {
+    AnyKey,
+    GetInnerRaw,
     ParamMap,
     StoreRepositoryHash,
     StoreRepositoryOptions,
     StoreRepositoryQuery,
     StoreRepositoryReadOptions,
-    StoreRepositorySubmitOptions,
     StoreRepositoryRemoveOptions,
-    GetInnerRaw,
-    AnyKey,
+    StoreRepositorySubmitOptions,
 } from './types'
+import { Hash } from '@volverjs/data/hash'
+import { tryOnUnmounted, useIdle } from '@vueuse/core'
+import { defineStore } from 'pinia'
+import {
+    computed,
+    defineComponent,
+    isRef,
+    markRaw,
+    onBeforeUnmount,
+    type PropType,
+    type Raw,
+    type Ref,
+    ref,
+    toRefs,
+    unref,
+    watch,
+} from 'vue'
 import { StoreRepositoryAction, StoreRepositoryStatus } from './constants'
 import {
     clone,
+    getRandomValues,
     initAutoExecuteReadHandlers,
     initAutoExecuteSubmitHandlers,
-    getRandomValues,
 } from './utilities'
 
 export function defineStoreRepository<T>(repository: Repository<T> | RepositoryHttp<T>,	name: string,	options: StoreRepositoryOptions<T> = {}) {
@@ -50,8 +50,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
     ) {
         const prefix = options?.directory ? 'directory' : undefined
         return `${prefix ? `${prefix}-` : ''}${action}-${hashFunction(
-			JSON.stringify(unref(params)),
-		)}`
+            JSON.stringify(unref(params)),
+        )}`
     }
 
     function _checkKeyValue(value: unknown) {
@@ -68,11 +68,14 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
         )
 
         const _getHash = (
-            hash: string,
+            hash?: string,
             options?: StoreRepositoryReadOptions<
                 Parameters<typeof repository.read>[1]
             >,
         ): StoreRepositoryHash | undefined => {
+            if (!hash) {
+                return undefined
+            }
             // get store hash
             const storeHash = storeHashes.value.get(hash)
             if (!storeHash) {
@@ -189,7 +192,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         storeQuery.storeHashes.forEach((item) => {
                             storeHashes.value
                                 .get(item)
-                                ?.storeQueries.delete(queryName)
+                                ?.storeQueries
+                                .delete(queryName)
                         })
                     }
                 }
@@ -429,11 +433,11 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 if (
                     options?.resetWhen
                     && ((isRef(options.resetWhen) && options.resetWhen.value)
-                    || (typeof options.resetWhen === 'function'
-                    && options.resetWhen(
-							    newParams,
-							    storeQuery.value?.params,
-                    )))
+                        || (typeof options.resetWhen === 'function'
+                            && options.resetWhen(
+                                newParams,
+                                storeQuery.value?.params,
+                            )))
                 ) {
                     reset()
                 }
@@ -448,8 +452,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 if (
                     storeHash
                     && (storeHash.status === StoreRepositoryStatus.loading
-                    || (storeHash.status === StoreRepositoryStatus.success
-                    && !forceExecute))
+                        || (storeHash.status === StoreRepositoryStatus.success
+                            && !forceExecute))
                 ) {
                     if (storeHash.promise) {
                         await storeHash.promise
@@ -464,7 +468,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 if (!options?.group) {
                     const oldHashKey = storeQuery.value?.storeHashes
                         .values()
-                        ?.next().value
+                        ?.next()
+                        .value
                     if (oldHashKey !== hashKey) {
                         const oldStoreHash = _getHash(oldHashKey)
                         if (oldStoreHash) {
@@ -500,7 +505,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-								`read: empty response is not allowed`,
+                                `read: empty response is not allowed`,
                             ),
                         })
                         return executeReturn()
@@ -513,9 +518,9 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-								`read: response must contain a ${String(
-									keyProperty,
-								)} property`,
+                                `read: response must contain a ${String(
+                                    keyProperty,
+                                )} property`,
                             ),
                         })
                         return executeReturn()
@@ -687,7 +692,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 // abort old request
                 const oldHashKey = storeQuery.value?.storeHashes
                     .values()
-                    ?.next().value
+                    ?.next()
+                    .value
                 if (oldHashKey !== hashKey) {
                     const oldStoreHash = _getHash(oldHashKey)
                     if (oldStoreHash) {
@@ -729,7 +735,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-								`submit: empty response is not allowed`,
+                                `submit: empty response is not allowed`,
                             ),
                         })
                         return executeReturn()
@@ -740,9 +746,9 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-								`submit: response must contain a ${String(
-									keyProperty,
-								)} property`,
+                                `submit: response must contain a ${String(
+                                    keyProperty,
+                                )} property`,
                             ),
                         })
                         return executeReturn()
@@ -902,7 +908,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 // abort old request
                 const oldHashKey = storeQuery.value?.storeHashes
                     .values()
-                    ?.next().value
+                    ?.next()
+                    .value
                 if (oldHashKey !== hashKey) {
                     const oldStoreHash = _getHash(oldHashKey)
                     if (oldStoreHash) {
@@ -1030,43 +1037,43 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                  */
                 GetInnerRaw<typeof ReadProvider> & {
 
-				    new (): {
-				        $slots: {
-				            default: (_: {
-				                isLoading: boolean
-				                isError: boolean
-				                isSuccess: boolean
-				                error: Error | undefined
-				                query: StoreRepositoryQuery | undefined
-				                data: T[]
-				                item: T | undefined
-				                metadata: ParamMap | undefined
-				                execute: (
-				                    newParamsOrForceExecute?:
-				                        | ParamMap
-				                        | boolean,
-				                    newRepositoryOptionsOrForceExecute?: Parameters<
+                    new (): {
+                        $slots: {
+                            default: (_: {
+                                isLoading: boolean
+                                isError: boolean
+                                isSuccess: boolean
+                                error: Error | undefined
+                                query: StoreRepositoryQuery | undefined
+                                data: T[]
+                                item: T | undefined
+                                metadata: ParamMap | undefined
+                                execute: (
+                                    newParamsOrForceExecute?:
+                                        | ParamMap
+                                        | boolean,
+                                    newRepositoryOptionsOrForceExecute?: Parameters<
 										typeof repository.read
                                     >[1],
-				                ) => Promise<{
-				                    query: StoreRepositoryQuery | undefined
-				                    data: T[]
-				                    item: T | undefined
-				                    metadata: ParamMap | undefined
-				                    errors: Error[]
-				                    error: Error | undefined
-				                    isSuccess: boolean
-				                    isError: boolean
-				                    aborted: boolean
-				                }>
-				                stop: () => void
-				                ignoreUpdates: (callback: () => void) => void
-				                cleanup: () => void
+                                ) => Promise<{
+                                    query: StoreRepositoryQuery | undefined
+                                    data: T[]
+                                    item: T | undefined
+                                    metadata: ParamMap | undefined
+                                    errors: Error[]
+                                    error: Error | undefined
+                                    isSuccess: boolean
+                                    isError: boolean
+                                    aborted: boolean
+                                }>
+                                stop: () => void
+                                ignoreUpdates: (callback: () => void) => void
+                                cleanup: () => void
 
-				            }) => any
-				        }
-				    }
-			    }
+                            }) => any
+                        }
+                    }
+                }
             >,
             SubmitProvider,
             RemoveProvider,
