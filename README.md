@@ -44,9 +44,9 @@ Following examples are based on a `RepositoryHttp` instance, but you can use any
 First of all, you need to [initialize `pinia`](https://pinia.vuejs.org/getting-started.html) in your application, then you can create a store composable using `defineStoreRepository()`:
 
 ```ts
+import { HttpClient, RepositoryHttp } from '@volverjs/data'
 // user-store.ts
 import { defineStoreRepository } from '@volverjs/query-vue'
-import { HttpClient, RepositoryHttp } from '@volverjs/data'
 
 /* Define an User type */
 export type User = {
