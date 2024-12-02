@@ -1,8 +1,8 @@
 import path from 'node:path'
 import ESLint from '@nabla/vite-plugin-eslint'
-import Vue from '@vitejs/plugin-vue'
+import vue from '@vitejs/plugin-vue'
 import dts from 'vite-plugin-dts'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 // https://vitejs.dev/config/
 export default () => {
@@ -10,6 +10,7 @@ export default () => {
         test: {
             globals: true,
             environment: 'happy-dom',
+            exclude: configDefaults.exclude,
         },
         build: {
             lib: {
@@ -37,7 +38,7 @@ export default () => {
         },
         plugins: [
             // https://github.com/vitejs/vite-plugin-vue
-            Vue({
+            vue({
                 include: [/\.vue$/],
             }),
 
@@ -47,6 +48,7 @@ export default () => {
             // https://github.com/qmhc/vite-plugin-dts
             dts({
                 insertTypesEntry: true,
+                exclude: ['**/test/**'],
             }),
         ],
     })

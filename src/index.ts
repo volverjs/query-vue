@@ -35,7 +35,7 @@ import {
     initAutoExecuteSubmitHandlers,
 } from './utilities'
 
-export function defineStoreRepository<T>(repository: Repository<T> | RepositoryHttp<T>,	name: string,	options: StoreRepositoryOptions<T> = {}) {
+export function defineStoreRepository<T>(repository: Repository<T> | RepositoryHttp<T>, name: string, options: StoreRepositoryOptions<T> = {}) {
     const keyProperty = options.keyProperty ?? ('id' as keyof T)
     const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
     const defaultDebounce = options.defaultDebounce ?? 0
@@ -248,7 +248,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             })
         }
 
-        const getItemByKey = (key: AnyKey | Ref<AnyKey>) =>
+        const getItemByKey = (key?: AnyKey | Ref<AnyKey | undefined>) =>
             computed(() => storeItems.value.get(unref(key)))
 
         const getItemsByKeys = (keys: AnyKey[] | Ref<AnyKey[]>) =>
