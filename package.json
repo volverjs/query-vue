@@ -76,7 +76,7 @@
         "typescript": "5.7.3",
         "vite": "^6.0.1",
         "vite-plugin-dts": "^4.3.0",
-        "vitest": "2.1.8",
+        "vitest": "3.0.2",
         "vitest-fetch-mock": "^0.4.2",
         "vue-tsc": "^2.1.10"
     }
