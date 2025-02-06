@@ -1,4 +1,5 @@
 import type { Repository, RepositoryHttp } from '@volverjs/data'
+import type { PropType, Raw, Ref } from 'vue'
 import type {
     AnyKey,
     GetInnerRaw,
@@ -19,9 +20,7 @@ import {
     isRef,
     markRaw,
     onBeforeUnmount,
-    type PropType,
-    type Raw,
-    type Ref,
+
     ref,
     toRefs,
     unref,
@@ -111,12 +110,12 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
         ) => {
             const storeHash
 				= storeHashes.value.get(hashKey)
-				?? ({
-				    storeQueries: new Set(),
-				    status: StoreRepositoryStatus.idle,
-				    directory: false,
-				    action: StoreRepositoryAction.read,
-				} as StoreRepositoryHash)
+				    ?? ({
+				        storeQueries: new Set(),
+				        status: StoreRepositoryStatus.idle,
+				        directory: false,
+				        action: StoreRepositoryAction.read,
+				    } as StoreRepositoryHash)
             storeHash.timestamp = timestamp ?? new Date().getTime()
             if (params) {
                 storeHash.params = params
@@ -305,13 +304,13 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                                 }
                                 acc.isLoading
 									= acc.isLoading
-									|| status === StoreRepositoryStatus.loading
+									    || status === StoreRepositoryStatus.loading
                                 acc.isError
 									= acc.isError
-									|| status === StoreRepositoryStatus.error
+									    || status === StoreRepositoryStatus.error
                                 acc.isSuccess
 									= acc.isSuccess
-									|| status === StoreRepositoryStatus.success
+									    || status === StoreRepositoryStatus.success
                                 if (
                                     status === StoreRepositoryStatus.error
                                     && error
@@ -670,9 +669,10 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 newParams = { ...defaultParameters, ...newParams }
 
                 // action
-                let action: StoreRepositoryAction | undefined = unref(
+                const optionsAction = unref(
                     options?.action,
                 )
+                let action: StoreRepositoryAction | undefined = optionsAction ? StoreRepositoryAction[optionsAction] : undefined
                 if (!action) {
                     if (!Array.isArray(newData)) {
                         action = _checkKeyValue(newData[keyProperty])
@@ -706,15 +706,15 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 const { responsePromise, abort }
 					= action === StoreRepositoryAction.update
 					    ? repository.update(
-					        newData,
-					        newParams,
-					        repositorySubmitOptions,
-					    )
+					            newData,
+					            newParams,
+					            repositorySubmitOptions,
+					        )
 					    : repository.create(
-					        newData,
-					        newParams,
-					        repositorySubmitOptions,
-					    )
+					            newData,
+					            newParams,
+					            repositorySubmitOptions,
+					        )
 
                 _setHash(hashKey, {
                     queryName,
@@ -1079,6 +1079,11 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
             RemoveProvider,
         }
     })
+}
+
+export {
+    StoreRepositoryAction,
+    StoreRepositoryStatus,
 }
 
 export type {
