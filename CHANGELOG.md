@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-# [2.0.0] - 2023-10-03
+# [2.0.0] - 2025-02-06
 
 ### Changed
 
@@ -90,6 +90,7 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[2.0.0]: https://github.com/volverjs/query-vue/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/volverjs/query-vue/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/volverjs/query-vue/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/volverjs/query-vue/compare/v1.0.0...v1.0.1

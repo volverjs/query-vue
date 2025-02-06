@@ -506,8 +506,9 @@ As `read()` also `submit()` can be executed later too with `immediate: false` op
 
 ```vue
 <script setup lang="ts">
+import type { User } from './user-store'
 import { ref } from 'vue'
-import { type User, useUsersStore } from './user-store'
+import { useUsersStore } from './user-store'
 
 const user = ref<User>({
     username: ''
@@ -669,8 +670,9 @@ const { ReadProvider } = useUsersStore()
 
 ```vue
 <script setup lang="ts">
+import type { User } from './user-store'
 import { ref } from 'vue'
-import { type User, useUsersStore } from './user-store'
+import { useUsersStore } from './user-store'
 
 const { SubmitProvider } = useUsersStore()
 const user = ref<User>({
