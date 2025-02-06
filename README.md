@@ -82,9 +82,9 @@ import { useUsersStore } from './user-store'
 
 const { read } = useUsersStore()
 /*
-   * With HttpRepository `read()` execute a
-   * GET request to https://my-domain.com/users
-   */
+ * With HttpRepository `read()` execute a
+ * GET request to https://my-domain.com/users
+ */
 const { data, isLoading, isError } = read()
 </script>
 
@@ -314,63 +314,63 @@ const {
     /* The options object (default: undefined) */
     {
         /*
-   * The name of the query (default: undefined)
-   * if not defined, the query name will be generated
-   */
+         * The name of the query (default: undefined)
+         * if not defined, the query name will be generated
+         */
         name: undefined,
         /*
-   * Group all queries executed by the same read() action
-   * and exposes all items in `data` (default: false)
-   * Can be useful when you need to display a list of items
-   * (ex. inifinite scroll)
-   */
+         * Group all queries executed by the same read() action
+         * and exposes all items in `data` (default: false)
+         * Can be useful when you need to display a list of items
+         * (ex. inifinite scroll)
+         */
         group: false,
         /*
-   * Store query results in a
-   * separate directory (default: false)
-   */
+         * Store query results in a
+         * separate directory (default: false)
+         */
         directory: false,
         /*
-   * Keep the query alive when
-   * the component is unmounted (default: false)
-   */
+         * Keep the query alive when
+         * the component is unmounted (default: false)
+         */
         keepAlive: false,
         /*
-   * Execute the `read()` action immediately (default: true)
-   */
+         * Execute the `read()` action immediately (default: true)
+         */
         immediate: true,
         /*
-   * The query cache time in milliseconds (default: 60 * 60 * 1000)
-   */
+         * The query cache time in milliseconds (default: 60 * 60 * 1000)
+         */
         persistence: 60 * 60 * 1000,
         /*
-   * A boolean reactive parameter (or a function) that indicates
-   * when the `read()` action should be executed (default: undefined)
-   * For example:
-   * `executeWhen: (newParams) => newParams.id !== undefined`
-   * Or:
-   * `executeWhen: computed(() => parameters.value.id !== undefined)`
-   */
+         * A boolean reactive parameter (or a function) that indicates
+         * when the `read()` action should be executed (default: undefined)
+         * For example:
+         * `executeWhen: (newParams) => newParams.id !== undefined`
+         * Or:
+         * `executeWhen: computed(() => parameters.value.id !== undefined)`
+         */
         executeWhen: undefined,
         /*
-   * Automatically execute the `read()` action
-   * on reactive parameters change (default: false)
-   */
+         * Automatically execute the `read()` action
+         * on reactive parameters change (default: false)
+         */
         autoExecute: false,
         /*
-   * The query auto execute throttle
-   * in milliseconds (default: 0)
-   */
+         * The query auto execute throttle
+         * in milliseconds (default: 0)
+         */
         autoExecuteDebounce: 0,
         /*
-   * Automatically execute the `read()` action
-   * on window focus (default: false)
-   */
+         * Automatically execute the `read()` action
+         * on window focus (default: false)
+         */
         autoExecuteOnWindowFocus: false,
         /*
-   * Automatically execute the `read()` action
-   * on document visibility change (default: false)
-   */
+         * Automatically execute the `read()` action
+         * on document visibility change (default: false)
+         */
         autoExecuteOnDocumentVisibility: false,
     }
 )
@@ -386,9 +386,9 @@ import { useUsersStore } from './user-store'
 
 const { submit } = useUsersStore()
 /*
-   * With HttpRepository `submit()` execute a
-   * POST request to https://my-domain.com/users
-   */
+ * With HttpRepository `submit()` execute a
+ * POST request to https://my-domain.com/users
+ */
 const { isLoading, isError, isSuccess } = submit({
     username: 'john.doe'
 })
@@ -456,47 +456,47 @@ const {
     /* The options object (default: undefined) */
     {
         /*
-   * The name of the query (default: undefined)
-   * if not defined, the query name will be generated
-   */
+         * The name of the query (default: undefined)
+         * if not defined, the query name will be generated
+         */
         name: undefined,
         /*
-   * Keep the query alive when
-   * the component is unmounted (default: false)
-   */
+         * Keep the query alive when
+         * the component is unmounted (default: false)
+         */
         keepAlive: false,
         /*
-   * Execute the `submit()` action immediately (default: true)
-   */
+         * Execute the `submit()` action immediately (default: true)
+         */
         immediate: true,
         /*
-   * A boolean reactive parameter (or a function) that indicates
-   * when the `submit()` action should be executed (default: undefined)
-   * For example:
-   * `executeWhen: (newPayload, newParams) => newParams.id !== undefined`
-   * Or:
-   * `executeWhen: computed(() => parameters.value.id !== undefined)`
-   */
+         * A boolean reactive parameter (or a function) that indicates
+         * when the `submit()` action should be executed (default: undefined)
+         * For example:
+         * `executeWhen: (newPayload, newParams) => newParams.id !== undefined`
+         * Or:
+         * `executeWhen: computed(() => parameters.value.id !== undefined)`
+         */
         executeWhen: undefined,
         /*
-   * Automatically execute the `submit()` action
-   * on reactive parameters change (default: false)
-   */
+         * Automatically execute the `submit()` action
+         * on reactive parameters change (default: false)
+         */
         autoExecute: false,
         /*
-   * The query auto execute throttle
-   * in milliseconds (default: 0)
-   */
+         * The query auto execute throttle
+         * in milliseconds (default: 0)
+         */
         autoExecuteDebounce: 0,
         /*
-   * Automatically execute the `submit()` action
-   * on window focus (default: false)
-   */
+         * Automatically execute the `submit()` action
+         * on window focus (default: false)
+         */
         autoExecuteOnWindowFocus: false,
         /*
-   * Automatically execute the `submit()` action
-   * on document visibility change (default: false)
-   */
+         * Automatically execute the `submit()` action
+         * on document visibility change (default: false)
+         */
         autoExecuteOnDocumentVisibility: false,
     }
 )
@@ -552,9 +552,9 @@ import { useUsersStore } from './user-store'
 
 const { remove } = useUsersStore()
 /*
-   * With HttpRepository `remove()` execute a
-   * DELETE request to https://my-domain.com/users
-   */
+ * With HttpRepository `remove()` execute a
+ * DELETE request to https://my-domain.com/users
+ */
 const { isLoading, isError, isSuccess } = remove({
     // "id" or other "keyProperty" field
     id: '123-321'
