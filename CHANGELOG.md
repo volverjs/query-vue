@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-# [2.0.0] - 2025-03-26
+## [2.0.0] - 2025-03-26
 
 ### Changed
 
@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file.
 - `resetWhen` option for `read()` action;
 - `resetQuery()` method.
 
-# [1.0.3] - 2023-10-03
+## [1.0.3] - 2023-10-03
 
 ### Added
 
