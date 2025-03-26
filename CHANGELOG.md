@@ -2,7 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-# [1.0.3] - 2023-10-03
+## [2.0.0] - 2025-03-26
+
+### Changed
+
+- `@volverjs/data@2.x.x` support;
+- Hash `method` is now `action`;
+- `cleanHashes` is now `cleanUp`.
+
+### Added
+
+- `repositoryOptions` for all methods;
+- `repositoryOptions` as last parameter of all `execute()` functions;
+- `submit()` support for multiple items;
+- `reset()` method for `read()` action;
+- `resetWhen` option for `read()` action;
+- `resetQuery()` method.
+
+## [1.0.3] - 2023-10-03
 
 ### Added
 
@@ -73,6 +90,7 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[2.0.0]: https://github.com/volverjs/query-vue/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/volverjs/query-vue/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/volverjs/query-vue/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/volverjs/query-vue/compare/v1.0.0...v1.0.1
