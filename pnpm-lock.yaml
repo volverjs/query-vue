@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      ts-dot-prop:
-        specifier: ^2.1.x
-        version: 2.1.4
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^4.17.0
@@ -2526,14 +2522,6 @@ packages:
     resolution: {integrity: sha512-EDyGAwH1gO0Ausm9gV6T2nUvBgXT5kGoCMJPllOaooZ+4VvJiKBdZE7wK18N1deEowhcUptS+5GXZK8U/fvpwA==}
     peerDependencies:
       typescript: '>=4.0.0'
-
-  ts-dot-prop@2.1.4:
-    resolution: {integrity: sha512-ds8gGKOMrjsJiYvxP5drQy9JaxGT+NTal3E06RtfnyZnEk3kXzaG6OkvWGuLU8m7kqXFkjtI3JlUrg5OSqD+Jw==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-
-  ts-util-is@2.1.0:
-    resolution: {integrity: sha512-qDZ6txIWjwh7FZsoGiqsH82GuNRZE8uOWOGqbi66NGlMFz7Ps8ak8azJiDhdbpkgmmACdLFJJtuajmQoFwQNNA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
@@ -5494,12 +5482,6 @@ snapshots:
     dependencies:
       picomatch: 4.0.2
       typescript: 5.8.3
-
-  ts-dot-prop@2.1.4:
-    dependencies:
-      ts-util-is: 2.1.0
-
-  ts-util-is@2.1.0: {}
 
   tslib@2.8.1: {}
 

@@ -63,9 +63,6 @@
         "pinia": "^3.0.x",
         "vue": "^3.5.x"
     },
-    "dependencies": {
-        "ts-dot-prop": "^2.1.x"
-    },
     "devDependencies": {
         "@antfu/eslint-config": "^4.17.0",
         "@nabla/vite-plugin-eslint": "^2.0.5",
