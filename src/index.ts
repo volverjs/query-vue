@@ -35,16 +35,13 @@ import {
 } from './utilities'
 
 export function defineStoreRepository<TRequest, TResponse = TRequest>(repository: Repository<TRequest, TResponse> | RepositoryHttp<TRequest, TResponse>, name: string, options: StoreRepositoryOptions<TResponse> = {}) {
-    const keyProperty = options.keyProperty ?? ('id' as keyof TResponse)
-    const keyPropertyName = typeof keyProperty === 'object'
-        ? keyProperty.name
-        : typeof keyProperty === 'function' ? 'id' : String(keyProperty)
     const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
     const defaultDebounce = options.defaultDebounce ?? 0
     const defaultParameters = options.defaultParameters ?? {}
-    const hashFunction = options.hashFunction ?? Hash.cyrb53
     const cleanUpEvery = options.cleanUpEvery ?? 3 * 1000
 
+    // hash function
+    const hashFunction = options.hashFunction ?? Hash.cyrb53
     function _hashParams(
         params: ParamMap | Ref<ParamMap>,
         action: StoreRepositoryAction,
@@ -56,8 +53,17 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
         )}`
     }
 
-    function _checkKeyValue(value: unknown) {
-        return value !== undefined && value !== null && value !== ''
+    // key property and key value
+    const keyProperty = options.keyProperty ?? ('id' as keyof TResponse)
+    let keyPropertyName: string
+    if (typeof keyProperty === 'object') {
+        keyPropertyName = keyProperty.name
+    }
+    else if (typeof keyProperty === 'function') {
+        keyPropertyName = 'id'
+    }
+    else {
+        keyPropertyName = String(keyProperty)
     }
 
     function _getKeyValue(
@@ -70,6 +76,10 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             return keyProperty(item as TResponse)
         }
         return (item as TResponse)[keyProperty] as AnyKey
+    }
+
+    function _checkKeyValue(value: unknown) {
+        return value !== undefined && value !== null && value !== ''
     }
 
     return defineStore(name, () => {
@@ -270,7 +280,6 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 return unref(keys).reduce((acc: TResponse[], key) => {
                     if (storeItems.value.get(key)) {
                         acc.push(storeItems.value.get(key) as TResponse)
-                        return acc
                     }
                     return acc
                 }, [])
@@ -310,7 +319,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                                     acc.keys.push(...keys)
                                 }
                                 if (data) {
-                                    acc.data.push(...(data as TResponse[]))
+                                    acc.data.push(...data)
                                 }
                                 acc.metadata = { ...acc.metadata, ...metadata }
                                 if (acc.timestamp < timestamp) {
@@ -532,9 +541,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-                                `read: response must contain a ${String(
-                                    keyProperty,
-                                )} property`,
+                                `read: response must contain a ${keyPropertyName} property`,
                             ),
                         })
                         return executeReturn()
@@ -761,9 +768,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-                                `submit: response must contain a ${String(
-                                    keyProperty,
-                                )} property`,
+                                `submit: response must contain a ${keyPropertyName} property`,
                             ),
                         })
                         return executeReturn()
@@ -958,10 +963,10 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     })
                     // remove keys from store
                     const keysToRemove = Array.isArray(
-                        newParams[keyProperty as string],
+                        newParams[keyPropertyName],
                     )
-                        ? newParams[keyProperty as string]
-                        : [newParams[keyProperty as string]]
+                        ? newParams[keyPropertyName]
+                        : [newParams[keyPropertyName]]
                     keysToRemove.forEach((key: string) => {
                         storeItems.value.delete(key)
                     })
