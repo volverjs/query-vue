@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2025-06-18
+
+### Added
+- `keyProperty` option now can be also a function or an object with `name` and `get` properties; 
+
 ## [2.0.0] - 2025-03-26
 
 ### Changed

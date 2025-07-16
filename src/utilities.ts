@@ -53,7 +53,7 @@ export function initStatus() {
     return { status, isLoading, isError, isSuccess, error }
 }
 
-export function initAutoExecuteReadHandlers<T>(
+export function initAutoExecuteReadHandlers<TResponse>(
     params: Ref<ParamMap> | ParamMap,
     execute: (
         newValue?: ParamMap,
@@ -66,15 +66,15 @@ export function initAutoExecuteReadHandlers<T>(
                 isSuccess: boolean
                 errors: Error[]
                 metadata: ParamMap
-                data: T[]
+                data: TResponse[]
                 timestamp: number
                 params: ParamMap
                 storeHashes: Set<string>
                 enabled: boolean
             }
             | undefined
-        data: T[]
-        item: T | undefined
+        data: TResponse[]
+        item: TResponse | undefined
         metadata: ParamMap | undefined
         errors: Error[]
         error: Error | undefined
@@ -168,11 +168,11 @@ export function initAutoExecuteReadHandlers<T>(
     return { stop, ignoreUpdates }
 }
 
-export function initAutoExecuteSubmitHandlers<T>(
-    payload: Ref<T | T[] | undefined> | T | T[] | undefined,
+export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
+    payload: Ref<TRequest | TRequest[] | undefined> | TRequest | TRequest[] | undefined,
     params: Ref<ParamMap> | ParamMap,
     resubmit: (
-        item?: T | T[],
+        item?: TRequest | TRequest[],
         params?: ParamMap,
     ) => Promise<{
         query:
@@ -182,15 +182,15 @@ export function initAutoExecuteSubmitHandlers<T>(
                 isSuccess: boolean
                 errors: Error[]
                 metadata: ParamMap
-                data: T[]
+                data: TResponse[]
                 timestamp: number
                 params: ParamMap
                 storeHashes: Set<string>
                 enabled: boolean
             }
             | undefined
-        data: T[]
-        item: T | undefined
+        data: TResponse[]
+        item: TResponse | undefined
         metadata: ParamMap | undefined
         errors: Error[]
         error: Error | undefined
@@ -198,7 +198,7 @@ export function initAutoExecuteSubmitHandlers<T>(
         isError: boolean
         aborted: boolean
     }>,
-    options: StoreRepositorySubmitOptions<T> = {},
+    options: StoreRepositorySubmitOptions<TRequest> = {},
 ) {
     const {
         immediate = true,

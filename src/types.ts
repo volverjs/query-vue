@@ -9,7 +9,7 @@ export type ParamMap<T extends string | number | symbol = string> = Record<
 export type AnyKey = string | number | symbol
 
 export type StoreRepositoryOptions<T> = {
-    keyProperty?: keyof T
+    keyProperty?: keyof T | ((value: T) => AnyKey) | { name: string, get: ((value: T) => AnyKey) }
     defaultPersistence?: number
     defaultDebounce?: number | Ref<number>
     defaultParameters?: ParamMap
@@ -71,6 +71,7 @@ export type StoreRepositorySubmitOptions<
     autoExecuteDebounce?: number | Ref<number>
     autoExecuteOnWindowFocus?: boolean
     autoExecuteOnDocumentVisibility?: boolean
+    disablePayloadSync?: boolean
     action?: Ref<StoreRepositoryAction | `${StoreRepositoryAction}`> | StoreRepositoryAction | `${StoreRepositoryAction}`
     repositoryOptions?: Ref<RepositorySubmitOptions> | RepositorySubmitOptions
 }
