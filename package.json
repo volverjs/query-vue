@@ -65,24 +65,24 @@
     },
     "devDependencies": {
         "@antfu/eslint-config": "^5.0.0",
-        "@nabla/vite-plugin-eslint": "^2.0.5",
+        "@nabla/vite-plugin-eslint": "^2.0.6",
         "@pinia/testing": "^1.0.2",
-        "@types/node": "^24.0.14",
-        "@vitejs/plugin-vue": "^6.0.0",
-        "@volverjs/data": "^2.0.1",
+        "@types/node": "^24.1.0",
+        "@vitejs/plugin-vue": "^6.0.1",
+        "@volverjs/data": "^2.0.2",
         "@vue/test-utils": "^2.4.6",
         "@vueuse/core": "^13.5.0",
         "copy": "^0.3.2",
-        "eslint": "^9.31.0",
+        "eslint": "^9.32.0",
         "happy-dom": "^18.0.1",
         "pinia": "^3.0.3",
         "typescript": "5.8.3",
-        "vite": "^7.0.4",
+        "vite": "^7.0.6",
         "vite-plugin-dts": "^4.5.4",
         "vitest": "^3.2.4",
         "vitest-fetch-mock": "^0.4.5",
-        "vue": "^3.5.17",
-        "vue-tsc": "^3.0.1"
+        "vue": "^3.5.18",
+        "vue-tsc": "^3.0.4"
     },
     "pnpm": {
         "onlyBuiltDependencies": [
