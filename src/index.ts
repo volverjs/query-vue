@@ -134,13 +134,13 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             } = {},
         ) => {
             const storeHash
-				= storeHashes.value.get(hashKey)
-				    ?? ({
-				        storeQueries: new Set(),
-				        status: StoreRepositoryStatus.idle,
-				        directory: false,
-				        action: StoreRepositoryAction.read,
-				    } as StoreRepositoryHash)
+                = storeHashes.value.get(hashKey)
+                    ?? ({
+                        storeQueries: new Set(),
+                        status: StoreRepositoryStatus.idle,
+                        directory: false,
+                        action: StoreRepositoryAction.read,
+                    } as StoreRepositoryHash)
             storeHash.timestamp = timestamp ?? new Date().getTime()
             if (params) {
                 storeHash.params = params
@@ -327,14 +327,14 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                                     acc.params = params
                                 }
                                 acc.isLoading
-									= acc.isLoading
-									    || status === StoreRepositoryStatus.loading
+                                    = acc.isLoading
+                                        || status === StoreRepositoryStatus.loading
                                 acc.isError
-									= acc.isError
-									    || status === StoreRepositoryStatus.error
+                                    = acc.isError
+                                        || status === StoreRepositoryStatus.error
                                 acc.isSuccess
-									= acc.isSuccess
-									    || status === StoreRepositoryStatus.success
+                                    = acc.isSuccess
+                                        || status === StoreRepositoryStatus.success
                                 if (
                                     status === StoreRepositoryStatus.error
                                     && error
@@ -502,7 +502,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }
                 // create new request
                 const repositoryReadOptions
-					= newRepositoryOptions ?? unref(repositoryOptions)
+                    = newRepositoryOptions ?? unref(repositoryOptions)
                 const { responsePromise, abort } = repository.read(newParams, {
                     key: hashKey,
                     ...repositoryReadOptions,
@@ -724,19 +724,19 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }
                 // create new request
                 const repositorySubmitOptions
-					= newRepositoryOptions ?? unref(repositoryOptions)
+                    = newRepositoryOptions ?? unref(repositoryOptions)
                 const { responsePromise, abort }
-					= action === StoreRepositoryAction.update
-					    ? repository.update(
-					            newData,
-					            newParams,
-					            repositorySubmitOptions,
-					        )
-					    : repository.create(
-					            newData,
-					            newParams,
-					            repositorySubmitOptions,
-					        )
+                    = action === StoreRepositoryAction.update
+                        ? repository.update(
+                                newData,
+                                newParams,
+                                repositorySubmitOptions,
+                            )
+                        : repository.create(
+                                newData,
+                                newParams,
+                                repositorySubmitOptions,
+                            )
 
                 _setHash(hashKey, {
                     queryName,
@@ -938,7 +938,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }
                 // create new request
                 const repositoryRemoveOptions
-					= newRepositoryOptions ?? unref(repositoryOptions)
+                    = newRepositoryOptions ?? unref(repositoryOptions)
                 const { responsePromise, abort } = repository.remove(
                     newParams,
                     repositoryRemoveOptions,
