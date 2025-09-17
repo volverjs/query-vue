@@ -34,14 +34,14 @@ import {
     initAutoExecuteSubmitHandlers,
 } from './utilities'
 
-export function defineStoreRepository<T>(repository: Repository<T> | RepositoryHttp<T>, name: string, options: StoreRepositoryOptions<T> = {}) {
-    const keyProperty = options.keyProperty ?? ('id' as keyof T)
+export function defineStoreRepository<TRequest, TResponse = TRequest>(repository: Repository<TRequest, TResponse> | RepositoryHttp<TRequest, TResponse>, name: string, options: StoreRepositoryOptions<TResponse> = {}) {
     const defaultPersistence = options.defaultPersistence ?? 60 * 60 * 1000
     const defaultDebounce = options.defaultDebounce ?? 0
     const defaultParameters = options.defaultParameters ?? {}
-    const hashFunction = options.hashFunction ?? Hash.cyrb53
     const cleanUpEvery = options.cleanUpEvery ?? 3 * 1000
 
+    // hash function
+    const hashFunction = options.hashFunction ?? Hash.cyrb53
     function _hashParams(
         params: ParamMap | Ref<ParamMap>,
         action: StoreRepositoryAction,
@@ -53,6 +53,31 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
         )}`
     }
 
+    // key property and key value
+    const keyProperty = options.keyProperty ?? ('id' as keyof TResponse)
+    let keyPropertyName: string
+    if (typeof keyProperty === 'object') {
+        keyPropertyName = keyProperty.name
+    }
+    else if (typeof keyProperty === 'function') {
+        keyPropertyName = 'id'
+    }
+    else {
+        keyPropertyName = String(keyProperty)
+    }
+
+    function _getKeyValue(
+        item: unknown,
+    ): AnyKey {
+        if (typeof keyProperty === 'object') {
+            return keyProperty.get(item as TResponse)
+        }
+        if (typeof keyProperty === 'function') {
+            return keyProperty(item as TResponse)
+        }
+        return (item as TResponse)[keyProperty] as AnyKey
+    }
+
     function _checkKeyValue(value: unknown) {
         return value !== undefined && value !== null && value !== ''
     }
@@ -61,7 +86,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
         const storeQueries: Ref<Map<string, StoreRepositoryQuery>> = ref(
             new Map(),
         )
-        const storeItems: Ref<Map<unknown, T>> = ref(new Map())
+        const storeItems: Ref<Map<unknown, TResponse>> = ref(new Map())
         const storeHashes: Ref<Map<string, StoreRepositoryHash>> = ref(
             new Map(),
         )
@@ -103,19 +128,19 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 action,
                 abort,
                 promise,
-            }: Partial<StoreRepositoryHash<T>> & {
+            }: Partial<StoreRepositoryHash<TResponse>> & {
                 queryName?: string
                 group?: boolean
             } = {},
         ) => {
             const storeHash
-				= storeHashes.value.get(hashKey)
-				    ?? ({
-				        storeQueries: new Set(),
-				        status: StoreRepositoryStatus.idle,
-				        directory: false,
-				        action: StoreRepositoryAction.read,
-				    } as StoreRepositoryHash)
+                = storeHashes.value.get(hashKey)
+                    ?? ({
+                        storeQueries: new Set(),
+                        status: StoreRepositoryStatus.idle,
+                        directory: false,
+                        action: StoreRepositoryAction.read,
+                    } as StoreRepositoryHash)
             storeHash.timestamp = timestamp ?? new Date().getTime()
             if (params) {
                 storeHash.params = params
@@ -157,7 +182,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 if (!storeHash.directory) {
                     const keyValues: unknown[] = []
                     data.forEach((item) => {
-                        const keyValue = item[keyProperty]
+                        const keyValue = _getKeyValue(item)
                         if (_checkKeyValue(keyValue)) {
                             keyValues.push(keyValue)
                             storeItems.value.set(keyValue, item)
@@ -252,10 +277,9 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
 
         const getItemsByKeys = (keys: AnyKey[] | Ref<AnyKey[]>) =>
             computed(() => {
-                return unref(keys).reduce((acc: T[], key) => {
+                return unref(keys).reduce((acc: TResponse[], key) => {
                     if (storeItems.value.get(key)) {
-                        acc.push(storeItems.value.get(key) as T)
-                        return acc
+                        acc.push(storeItems.value.get(key) as TResponse)
                     }
                     return acc
                 }, [])
@@ -290,12 +314,12 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                                     error,
                                 } = storeHashes.value.get(
                                     item,
-                                ) as StoreRepositoryHash
+                                ) as StoreRepositoryHash<TResponse>
                                 if (keys) {
                                     acc.keys.push(...keys)
                                 }
                                 if (data) {
-                                    acc.data.push(...(data as T[]))
+                                    acc.data.push(...data)
                                 }
                                 acc.metadata = { ...acc.metadata, ...metadata }
                                 if (acc.timestamp < timestamp) {
@@ -303,14 +327,14 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                                     acc.params = params
                                 }
                                 acc.isLoading
-									= acc.isLoading
-									    || status === StoreRepositoryStatus.loading
+                                    = acc.isLoading
+                                        || status === StoreRepositoryStatus.loading
                                 acc.isError
-									= acc.isError
-									    || status === StoreRepositoryStatus.error
+                                    = acc.isError
+                                        || status === StoreRepositoryStatus.error
                                 acc.isSuccess
-									= acc.isSuccess
-									    || status === StoreRepositoryStatus.success
+                                    = acc.isSuccess
+                                        || status === StoreRepositoryStatus.success
                                 if (
                                     status === StoreRepositoryStatus.error
                                     && error
@@ -322,7 +346,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         },
                         {
                             keys: [] as unknown[],
-                            data: [] as T[],
+                            data: [] as TResponse[],
                             metadata: {} as ParamMap,
                             params: {} as ParamMap,
                             timestamp: 0,
@@ -334,9 +358,9 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     )
                     if (keys.length) {
                         data.push(
-                            ...keys.reduce((acc: T[], key) => {
+                            ...keys.reduce((acc: TResponse[], key) => {
                                 if (storeItems.value.get(key)) {
-                                    acc.push(storeItems.value.get(key) as T)
+                                    acc.push(storeItems.value.get(key) as TResponse)
                                 }
                                 return acc
                             }, []),
@@ -478,7 +502,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 }
                 // create new request
                 const repositoryReadOptions
-					= newRepositoryOptions ?? unref(repositoryOptions)
+                    = newRepositoryOptions ?? unref(repositoryOptions)
                 const { responsePromise, abort } = repository.read(newParams, {
                     key: hashKey,
                     ...repositoryReadOptions,
@@ -512,14 +536,12 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     if (
                         data.length > 0
                         && !options?.directory
-                        && !data.every(item => _checkKeyValue(item[keyProperty]))
+                        && !data.every(item => _checkKeyValue(_getKeyValue(item)))
                     ) {
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-                                `read: response must contain a ${String(
-                                    keyProperty,
-                                )} property`,
+                                `read: response must contain a ${keyPropertyName} property`,
                             ),
                         })
                         return executeReturn()
@@ -538,7 +560,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 }
                 return executeReturn()
             }
-            const { stop, ignoreUpdates } = initAutoExecuteReadHandlers<T>(
+            const { stop, ignoreUpdates } = initAutoExecuteReadHandlers<TResponse>(
                 params,
                 execute,
                 {
@@ -620,13 +642,13 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
         )
 
         const submit = (
-            payload: Ref<T | T[] | undefined> | T | T[] | undefined,
+            payload: Ref<TRequest | TRequest[] | undefined> | TRequest | TRequest[] | undefined,
             params: Ref<ParamMap> | ParamMap = {},
             {
                 repositoryOptions,
                 ...options
             }: StoreRepositorySubmitOptions<
-                T,
+                TRequest,
                 Parameters<typeof repository.create>[2]
             > = {},
         ) => {
@@ -647,7 +669,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
 
             // execute function
             const execute = async (
-                newData?: T | T[],
+                newData?: TRequest | TRequest[],
                 newParams?: ParamMap,
                 newRepositoryOptions?: Parameters<typeof repository.create>[2],
             ) => {
@@ -661,10 +683,10 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 }
                 if (
                     !Array.isArray(newData)
-                    && _checkKeyValue(newData[keyProperty])
-                    && !newParams[keyProperty as string]
+                    && _checkKeyValue(_getKeyValue(newData))
+                    && !newParams[keyPropertyName]
                 ) {
-                    newParams[keyProperty as string] = newData[keyProperty]
+                    newParams[keyPropertyName] = _getKeyValue(newData)
                 }
                 newParams = { ...defaultParameters, ...newParams }
 
@@ -675,13 +697,13 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 let action: StoreRepositoryAction | undefined = optionsAction ? StoreRepositoryAction[optionsAction] : undefined
                 if (!action) {
                     if (!Array.isArray(newData)) {
-                        action = _checkKeyValue(newData[keyProperty])
+                        action = _checkKeyValue(_getKeyValue(newData))
                             ? StoreRepositoryAction.update
                             : StoreRepositoryAction.create
                     }
                     else {
                         action = newData.every(item =>
-                            _checkKeyValue(item[keyProperty]),
+                            _checkKeyValue(_getKeyValue(item)),
                         )
                             ? StoreRepositoryAction.update
                             : StoreRepositoryAction.create
@@ -702,19 +724,19 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 }
                 // create new request
                 const repositorySubmitOptions
-					= newRepositoryOptions ?? unref(repositoryOptions)
+                    = newRepositoryOptions ?? unref(repositoryOptions)
                 const { responsePromise, abort }
-					= action === StoreRepositoryAction.update
-					    ? repository.update(
-					            newData,
-					            newParams,
-					            repositorySubmitOptions,
-					        )
-					    : repository.create(
-					            newData,
-					            newParams,
-					            repositorySubmitOptions,
-					        )
+                    = action === StoreRepositoryAction.update
+                        ? repository.update(
+                                newData,
+                                newParams,
+                                repositorySubmitOptions,
+                            )
+                        : repository.create(
+                                newData,
+                                newParams,
+                                repositorySubmitOptions,
+                            )
 
                 _setHash(hashKey, {
                     queryName,
@@ -741,14 +763,12 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         return executeReturn()
                     }
                     if (
-                        !data.every(item => _checkKeyValue(item[keyProperty]))
+                        !data.every(item => _checkKeyValue(_getKeyValue(item)))
                     ) {
                         _setHash(hashKey, {
                             status: StoreRepositoryStatus.error,
                             error: new Error(
-                                `submit: response must contain a ${String(
-                                    keyProperty,
-                                )} property`,
+                                `submit: response must contain a ${keyPropertyName} property`,
                             ),
                         })
                         return executeReturn()
@@ -758,14 +778,14 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         data,
                         metadata,
                     })
-                    if (isRef(payload)) {
+                    if (isRef(payload) && !options?.disablePayloadSync) {
                         // eslint-disable-next-line ts/no-use-before-define
                         ignoreUpdates(() => {
                             if (Array.isArray(payload.value)) {
-                                payload.value = clone<T[]>(data)
+                                payload.value = clone<TRequest[]>(data as unknown as TRequest[])
                                 return
                             }
-                            payload.value = clone<T>(data[0])
+                            payload.value = clone<TRequest>(data[0] as unknown as TRequest)
                         })
                     }
                 }
@@ -777,7 +797,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 }
                 return executeReturn()
             }
-            const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<T>(
+            const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<TRequest, TResponse>(
                 payload,
                 params,
                 execute,
@@ -818,7 +838,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 name: 'StoreRepositorySubmitProvider',
                 props: {
                     modelValue: {
-                        type: Object as PropType<T | T[]>,
+                        type: Object as PropType<TRequest | TRequest[]>,
                         default: undefined,
                     },
                     params: {
@@ -828,7 +848,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     options: {
                         type: Object as PropType<
                             StoreRepositorySubmitOptions<
-                                T,
+                                TRequest,
                                 Parameters<typeof repository.create>[2]
                             >
                         >,
@@ -845,7 +865,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                         set: (value) => {
                             emit('update:modelValue', value)
                         },
-                    }) as Ref<T | T[] | undefined>
+                    }) as Ref<TRequest | TRequest[] | undefined>
                     const toExpose = submit(localItem, params, options.value)
                     expose(toExpose)
                     onBeforeUnmount(() => {
@@ -918,7 +938,7 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                 }
                 // create new request
                 const repositoryRemoveOptions
-					= newRepositoryOptions ?? unref(repositoryOptions)
+                    = newRepositoryOptions ?? unref(repositoryOptions)
                 const { responsePromise, abort } = repository.remove(
                     newParams,
                     repositoryRemoveOptions,
@@ -943,10 +963,10 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                     })
                     // remove keys from store
                     const keysToRemove = Array.isArray(
-                        newParams[keyProperty as string],
+                        newParams[keyPropertyName],
                     )
-                        ? newParams[keyProperty as string]
-                        : [newParams[keyProperty as string]]
+                        ? newParams[keyPropertyName]
+                        : [newParams[keyPropertyName]]
                     keysToRemove.forEach((key: string) => {
                         storeItems.value.delete(key)
                     })
@@ -1045,8 +1065,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                                 isSuccess: boolean
                                 error: Error | undefined
                                 query: StoreRepositoryQuery | undefined
-                                data: T[]
-                                item: T | undefined
+                                data: TResponse[]
+                                item: TResponse | undefined
                                 metadata: ParamMap | undefined
                                 execute: (
                                     newParamsOrForceExecute?:
@@ -1057,8 +1077,8 @@ export function defineStoreRepository<T>(repository: Repository<T> | RepositoryH
                                     >[1],
                                 ) => Promise<{
                                     query: StoreRepositoryQuery | undefined
-                                    data: T[]
-                                    item: T | undefined
+                                    data: TResponse[]
+                                    item: TResponse | undefined
                                     metadata: ParamMap | undefined
                                     errors: Error[]
                                     error: Error | undefined
