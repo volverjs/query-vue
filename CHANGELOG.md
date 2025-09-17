@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.1] - 2025-06-18
+## [2.0.1] - 2025-09-16
 
 ### Added
 - `keyProperty` option now can be also a function or an object with `name` and `get` properties; 
@@ -95,6 +95,7 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[2.0.1]: https://github.com/volverjs/query-vue/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/volverjs/query-vue/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/volverjs/query-vue/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/volverjs/query-vue/compare/v1.0.1...v1.0.2

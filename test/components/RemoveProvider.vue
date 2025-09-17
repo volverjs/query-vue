@@ -4,7 +4,7 @@ import { RepositoryHttp } from '@volverjs/data/repository-http'
 import { ref } from 'vue'
 import { defineStoreRepository } from '../../src'
 
-	type Entity = { id: string }
+type Entity = { id: string }
 
 const httpClient = new HttpClient({
     prefixUrl: 'https://myapi.com/v1',
