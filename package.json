@@ -2,7 +2,7 @@
     "name": "@volverjs/query-vue",
     "type": "module",
     "version": "0.0.0",
-    "packageManager": "pnpm@10.16.1",
+    "packageManager": "pnpm@10.17.1",
     "description": "Repository pattern applied to a pinia store.",
     "author": "8 Wave S.r.l.",
     "license": "MIT",
@@ -64,25 +64,25 @@
         "vue": "^3.5.x"
     },
     "devDependencies": {
-        "@antfu/eslint-config": "^5.3.0",
+        "@antfu/eslint-config": "^5.4.1",
         "@nabla/vite-plugin-eslint": "^2.0.6",
         "@pinia/testing": "^1.0.2",
-        "@types/node": "^24.5.0",
+        "@types/node": "^24.6.2",
         "@vitejs/plugin-vue": "^6.0.1",
         "@volverjs/data": "^2.0.3",
         "@vue/test-utils": "^2.4.6",
         "@vueuse/core": "^13.9.0",
         "copy": "^0.3.2",
-        "eslint": "^9.35.0",
+        "eslint": "^9.36.0",
         "happy-dom": "^19.0.2",
         "pinia": "^3.0.3",
         "typescript": "5.9.3",
-        "vite": "^7.1.5",
+        "vite": "^7.1.8",
         "vite-plugin-dts": "^4.5.4",
         "vitest": "^3.2.4",
         "vitest-fetch-mock": "^0.4.5",
-        "vue": "^3.5.21",
-        "vue-tsc": "^3.0.7"
+        "vue": "^3.5.22",
+        "vue-tsc": "^3.1.0"
     },
     "pnpm": {
         "onlyBuiltDependencies": [
