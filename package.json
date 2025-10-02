@@ -76,7 +76,7 @@
         "eslint": "^9.35.0",
         "happy-dom": "^19.0.2",
         "pinia": "^3.0.3",
-        "typescript": "5.9.2",
+        "typescript": "5.9.3",
         "vite": "^7.1.5",
         "vite-plugin-dts": "^4.5.4",
         "vitest": "^3.2.4",
