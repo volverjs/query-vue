@@ -67,7 +67,7 @@
         "@antfu/eslint-config": "^6.0.0",
         "@nabla/vite-plugin-eslint": "^2.0.6",
         "@pinia/testing": "^1.0.2",
-        "@types/node": "^24.7.0",
+        "@types/node": "^25.0.0",
         "@vitejs/plugin-vue": "^6.0.1",
         "@volverjs/data": "^2.0.3",
         "@vue/test-utils": "^2.4.6",
