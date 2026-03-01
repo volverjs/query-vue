@@ -65,7 +65,7 @@
     },
     "devDependencies": {
         "@antfu/eslint-config": "^7.0.0",
-        "@nabla/vite-plugin-eslint": "^2.0.6",
+        "@nabla/vite-plugin-eslint": "^3.0.0",
         "@pinia/testing": "^1.0.2",
         "@types/node": "^25.0.0",
         "@vitejs/plugin-vue": "^6.0.1",
