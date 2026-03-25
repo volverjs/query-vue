@@ -118,6 +118,8 @@ const {
     isSuccess,
     /* Reactive error object */
     error,
+    /* Reactive array of errors */
+    errors,
     /* Reactive status of the request */
     status,
     /* Reactive query object */
@@ -135,7 +137,9 @@ const {
     /* Function to ignore reactive parameters updates */
     ignoreUpdates,
     /* Function to cleanup the store repository */
-    cleanup
+    cleanup,
+    /* Function to reset the query */
+    reset
 } = read()
 ```
 
@@ -353,6 +357,15 @@ const {
          */
         executeWhen: undefined,
         /*
+         * A boolean reactive ref (or a function) that indicates
+         * when the query should be reset (default: undefined)
+         * For example:
+         * `resetWhen: (newParams, oldParams) => newParams.id !== oldParams?.id`
+         * Or:
+         * `resetWhen: computed(() => shouldReset.value)`
+         */
+        resetWhen: undefined,
+        /*
          * Automatically execute the `read()` action
          * on reactive parameters change (default: false)
          */
@@ -372,6 +385,11 @@ const {
          * on document visibility change (default: false)
          */
         autoExecuteOnDocumentVisibility: false,
+        /*
+         * Additional options passed directly to the repository read method
+         * (default: undefined)
+         */
+        repositoryOptions: undefined,
     }
 )
 ```
@@ -419,6 +437,8 @@ const {
     isSuccess,
     /* Reactive error object */
     error,
+    /* Reactive array of errors */
+    errors,
     /* Reactive status of the request */
     status,
     /* Reactive query object */
@@ -498,6 +518,21 @@ const {
          * on document visibility change (default: false)
          */
         autoExecuteOnDocumentVisibility: false,
+        /*
+         * Force the action to be 'create' or 'update' (default: undefined)
+         * If not defined, the action is inferred from the payload key property
+         */
+        action: undefined,
+        /*
+         * Disable the automatic sync of the payload
+         * with the server response (default: false)
+         */
+        disablePayloadSync: false,
+        /*
+         * Additional options passed directly to the repository create/update method
+         * (default: undefined)
+         */
+        repositoryOptions: undefined,
     }
 )
 ```
@@ -586,10 +621,16 @@ const {
     isSuccess,
     /* Reactive error object */
     error,
+    /* Reactive array of errors */
+    errors,
     /* Reactive status of the request */
     status,
+    /* Reactive query object */
+    query,
     /* Function to execute the `remove()` action */
     execute,
+    /* Function to cleanup the store repository */
+    cleanup,
 } = remove({
     // ...
 })
@@ -608,8 +649,18 @@ const {
     params,
     /* The options object (default: undefined) */
     {
-    /* Execute the `remove()` action immediately (default: true) */
-        immediate: true
+        /*
+         * The name of the query (default: undefined)
+         * if not defined, the query name will be generated
+         */
+        name: undefined,
+        /* Execute the `remove()` action immediately (default: true) */
+        immediate: true,
+        /*
+         * Additional options passed directly to the repository remove method
+         * (default: undefined)
+         */
+        repositoryOptions: undefined,
     }
 )
 ```

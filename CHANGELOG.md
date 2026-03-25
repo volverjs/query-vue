@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.2] - 2026-03-25
+
+### Added
+
+- `status` computed ref exposed from `read()`, `submit()` and `remove()` actions;
+- `errors` array exposed from `read()`, `submit()` and `remove()` actions;
+- `ReadProvider`, `SubmitProvider` and `RemoveProvider` now expose all properties returned by their respective actions in the default slot.
+
+### Changed
+
+- Minimum Node.js version bumped to `>= 19.x` (global `crypto.getRandomValues` is available natively).
+
+### Fix
+
+- Abort of in-flight requests was broken when `persistence` was set to `0`; the abort logic now bypasses the persistence check when looking up the previous hash.
+
 ## [2.0.1] - 2025-09-16
 
 ### Added
@@ -95,6 +111,7 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[2.0.2]: https://github.com/volverjs/query-vue/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/volverjs/query-vue/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/volverjs/query-vue/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/volverjs/query-vue/compare/v1.0.2...v1.0.3
