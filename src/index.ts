@@ -141,7 +141,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         directory: false,
                         action: StoreRepositoryAction.read,
                     } as StoreRepositoryHash)
-            storeHash.timestamp = timestamp ?? new Date().getTime()
+            storeHash.timestamp = timestamp ?? Date.now()
             if (params) {
                 storeHash.params = params
             }
@@ -392,6 +392,17 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             }
         }
 
+        const _queryStatus = (storeQuery: ReturnType<typeof getQueryByName>) =>
+            computed(() => {
+                if (storeQuery.value?.isLoading)
+                    return StoreRepositoryStatus.loading
+                if (storeQuery.value?.isError)
+                    return StoreRepositoryStatus.error
+                if (storeQuery.value?.isSuccess)
+                    return StoreRepositoryStatus.success
+                return StoreRepositoryStatus.idle
+            })
+
         const read = (
             params: Ref<ParamMap> | ParamMap = {},
             {
@@ -422,7 +433,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 newParamsOrForceExecute?: ParamMap | boolean,
                 newRepositoryOptionsOrForceExecute?: Parameters<
 					typeof repository.read
-                >[1],
+                >[1] | boolean,
             ) => {
                 let newParams: ParamMap | undefined
                 let newRepositoryOptions:
@@ -493,8 +504,8 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         .values()
                         ?.next()
                         .value
-                    if (oldHashKey !== hashKey) {
-                        const oldStoreHash = _getHash(oldHashKey)
+                    if (oldHashKey && oldHashKey !== hashKey) {
+                        const oldStoreHash = storeHashes.value.get(oldHashKey)
                         if (oldStoreHash) {
                             oldStoreHash.abort?.()
                         }
@@ -580,6 +591,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             })
             return {
                 query: storeQuery,
+                status: _queryStatus(storeQuery),
                 isLoading: computed(() => storeQuery.value?.isLoading ?? false),
                 isError: computed(() => storeQuery.value?.isError ?? false),
                 isSuccess: computed(() => storeQuery.value?.isSuccess ?? false),
@@ -622,10 +634,12 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     })
                     return () => {
                         const slot = slots.default?.({
+                            status: toExpose.status.value,
                             isLoading: toExpose.isLoading.value,
                             isError: toExpose.isError.value,
                             isSuccess: toExpose.isSuccess.value,
                             error: toExpose.error.value,
+                            errors: toExpose.errors.value,
                             query: toExpose.query.value,
                             data: toExpose.data.value,
                             item: toExpose.item.value,
@@ -634,6 +648,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                             stop: toExpose.stop,
                             ignoreUpdates: toExpose.ignoreUpdates,
                             cleanup: toExpose.cleanup,
+                            reset: toExpose.reset,
                         })
                         return slot ?? slots.default
                     }
@@ -652,7 +667,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 Parameters<typeof repository.create>[2]
             > = {},
         ) => {
-            const queryName = options?.name ?? new Date().getTime().toString()
+            const queryName = options?.name ?? Date.now().toString()
             const storeQuery = getQueryByName(queryName)
 
             const executeReturn = (aborted = false) => ({
@@ -716,8 +731,8 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     .values()
                     ?.next()
                     .value
-                if (oldHashKey !== hashKey) {
-                    const oldStoreHash = _getHash(oldHashKey)
+                if (oldHashKey && oldHashKey !== hashKey) {
+                    const oldStoreHash = storeHashes.value.get(oldHashKey)
                     if (oldStoreHash) {
                         oldStoreHash.abort?.()
                     }
@@ -818,6 +833,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             })
             return {
                 query: storeQuery,
+                status: _queryStatus(storeQuery),
                 isLoading: computed(() => storeQuery.value?.isLoading),
                 isError: computed(() => storeQuery.value?.isError),
                 isSuccess: computed(() => storeQuery.value?.isSuccess),
@@ -873,10 +889,12 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     })
                     return () => {
                         const slot = slots.default?.({
+                            status: toExpose.status.value,
                             isLoading: toExpose.isLoading.value,
                             isError: toExpose.isError.value,
                             isSuccess: toExpose.isSuccess.value,
                             error: toExpose.error.value,
+                            errors: toExpose.errors.value,
                             query: toExpose.query.value,
                             data: toExpose.data.value,
                             item: toExpose.item.value,
@@ -930,8 +948,8 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     .values()
                     ?.next()
                     .value
-                if (oldHashKey !== hashKey) {
-                    const oldStoreHash = _getHash(oldHashKey)
+                if (oldHashKey && oldHashKey !== hashKey) {
+                    const oldStoreHash = storeHashes.value.get(oldHashKey)
                     if (oldStoreHash) {
                         oldStoreHash.abort?.()
                     }
@@ -992,6 +1010,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             })
             return {
                 query: storeQuery,
+                status: _queryStatus(storeQuery),
                 isLoading: computed(() => storeQuery.value?.isLoading),
                 isError: computed(() => storeQuery.value?.isError),
                 isSuccess: computed(() => storeQuery.value?.isSuccess),
@@ -1027,11 +1046,15 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     expose(toExpose)
                     return () => {
                         const slot = slots.default?.({
+                            status: toExpose.status.value,
                             isLoading: toExpose.isLoading.value,
                             isError: toExpose.isError.value,
                             isSuccess: toExpose.isSuccess.value,
                             error: toExpose.error.value,
+                            errors: toExpose.errors.value,
+                            query: toExpose.query.value,
                             execute: toExpose.execute,
+                            cleanup: toExpose.cleanup,
                         })
                         return slot ?? slots.default
                     }
@@ -1074,7 +1097,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                                         | boolean,
                                     newRepositoryOptionsOrForceExecute?: Parameters<
 										typeof repository.read
-                                    >[1],
+                                    >[1] | boolean,
                                 ) => Promise<{
                                     query: StoreRepositoryQuery | undefined
                                     data: TResponse[]
