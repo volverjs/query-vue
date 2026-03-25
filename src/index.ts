@@ -834,10 +834,10 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             return {
                 query: storeQuery,
                 status: _queryStatus(storeQuery),
-                isLoading: computed(() => storeQuery.value?.isLoading),
-                isError: computed(() => storeQuery.value?.isError),
-                isSuccess: computed(() => storeQuery.value?.isSuccess),
-                errors: computed(() => storeQuery.value?.errors),
+                isLoading: computed(() => storeQuery.value?.isLoading ?? false),
+                isError: computed(() => storeQuery.value?.isError ?? false),
+                isSuccess: computed(() => storeQuery.value?.isSuccess ?? false),
+                errors: computed(() => storeQuery.value?.errors ?? []),
                 error: computed(() => storeQuery.value?.errors?.[0]),
                 data: computed(() => storeQuery.value?.data),
                 item: computed(() => storeQuery.value?.data?.[0]),
@@ -1011,10 +1011,10 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             return {
                 query: storeQuery,
                 status: _queryStatus(storeQuery),
-                isLoading: computed(() => storeQuery.value?.isLoading),
-                isError: computed(() => storeQuery.value?.isError),
-                isSuccess: computed(() => storeQuery.value?.isSuccess),
-                errors: computed(() => storeQuery.value?.errors),
+                isLoading: computed(() => storeQuery.value?.isLoading ?? false),
+                isError: computed(() => storeQuery.value?.isError ?? false),
+                isSuccess: computed(() => storeQuery.value?.isSuccess ?? false),
+                errors: computed(() => storeQuery.value?.errors ?? []),
                 error: computed(() => storeQuery.value?.errors?.[0]),
                 execute,
                 cleanup,
@@ -1083,10 +1083,12 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     new (): {
                         $slots: {
                             default: (_: {
+                                status: StoreRepositoryStatus
                                 isLoading: boolean
                                 isError: boolean
                                 isSuccess: boolean
                                 error: Error | undefined
+                                errors: Error[]
                                 query: StoreRepositoryQuery | undefined
                                 data: TResponse[]
                                 item: TResponse | undefined
@@ -1112,6 +1114,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                                 stop: () => void
                                 ignoreUpdates: (callback: () => void) => void
                                 cleanup: () => void
+                                reset: () => void
 
                             }) => any
                         }

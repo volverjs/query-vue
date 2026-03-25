@@ -21,7 +21,7 @@
     "sideEffects": false,
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/src/index.d.ts",
             "import": "./dist/index.es.js",
             "require": "./dist/index.umd.js"
         },
@@ -30,11 +30,11 @@
     },
     "main": "./dist/index.umd.js",
     "module": "./dist/index.es.js",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/src/index.d.ts",
     "typesVersions": {
         "*": {
             "*": [
-                "dist/index.d.ts"
+                "dist/src/index.d.ts"
             ]
         }
     },
@@ -69,6 +69,7 @@
         "@types/node": "^25.5.0",
         "@vitejs/plugin-vue": "^6.0.5",
         "@volverjs/data": "^2.0.4",
+        "@vue/language-core": "^3.2.6",
         "@vue/test-utils": "^2.4.6",
         "@vueuse/core": "^14.2.1",
         "copy": "^0.3.2",
@@ -76,11 +77,11 @@
         "happy-dom": "^20.8.8",
         "pinia": "^3.0.4",
         "typescript": "6.0.2",
+        "unplugin-dts": "1.0.0-beta.6",
         "vite": "^8.0.2",
-        "vite-plugin-dts": "^4.5.4",
         "vitest": "^4.1.1",
         "vitest-fetch-mock": "^0.4.5",
-        "vue": "^3.5.30",
+        "vue": "^3.5.31",
         "vue-tsc": "^3.2.6"
     },
     "pnpm": {
