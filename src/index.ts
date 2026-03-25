@@ -1135,7 +1135,9 @@ export {
 export type {
     ParamMap,
     StoreRepositoryHash,
+    StoreRepositoryOptions,
     StoreRepositoryQuery,
     StoreRepositoryReadOptions,
+    StoreRepositoryRemoveOptions,
     StoreRepositorySubmitOptions,
 }

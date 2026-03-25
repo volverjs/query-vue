@@ -1,3 +1,4 @@
+import { copyFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import ESLint from '@nabla/vite-plugin-eslint'
 import vue from '@vitejs/plugin-vue'
@@ -43,6 +44,15 @@ export default defineConfig({
         dts({
             exclude: ['**/test/**'],
             processor: 'vue',
+            // Manually copy types after build since unplugin-dts bug with only types export
+            afterBuild: () => {
+                // move src/types.ts to dist/src/types.d.ts
+                const srcTypesPath = path.resolve(__dirname, 'src/types.ts')
+                const distTypesPath = path.resolve(__dirname, 'dist/src/types.d.ts')
+                if (existsSync(srcTypesPath)) {
+                    copyFileSync(srcTypesPath, distTypesPath)
+                }
+            },
         }),
     ],
 })
