@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.0.5] - 2026-03-26
+
+### Fix
+
+- `unplugin-dts` was generating `.d.ts` files in `dist/src/` instead of `dist/`; fixed by passing `compilerOptions: { rootDir: 'src' }` to the plugin in `vite.config.ts` and updated all type paths in `package.json` accordingly (`exports`, `types`, `typesVersions`, `afterBuild` hook).
+
 ## [2.0.4] - 2026-03-25
 
 ### Fix
@@ -123,6 +129,8 @@ All notable changes to this project will be documented in this file.
 - `read` and `submit` actions;
 - `getQueryByName` and `getItemByKey` getters.
 
+[2.0.5]: https://github.com/volverjs/query-vue/compare/v2.0.4...v2.0.5
+[2.0.4]: https://github.com/volverjs/query-vue/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/volverjs/query-vue/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/volverjs/query-vue/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/volverjs/query-vue/compare/v2.0.0...v2.0.1
