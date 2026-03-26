@@ -44,11 +44,14 @@ export default defineConfig({
         dts({
             exclude: ['**/test/**'],
             processor: 'vue',
+            compilerOptions: {
+                rootDir: path.resolve(__dirname, 'src'),
+            },
             // Manually copy types after build since unplugin-dts bug with only types export
             afterBuild: () => {
-                // move src/types.ts to dist/src/types.d.ts
+                // copy src/types.ts to dist/types.d.ts
                 const srcTypesPath = path.resolve(__dirname, 'src/types.ts')
-                const distTypesPath = path.resolve(__dirname, 'dist/src/types.d.ts')
+                const distTypesPath = path.resolve(__dirname, 'dist/types.d.ts')
                 if (existsSync(srcTypesPath)) {
                     copyFileSync(srcTypesPath, distTypesPath)
                 }
