@@ -1,0 +1,11 @@
+{
+  "name": "volverjs-query-vue",
+  "description": "Helps agents build Vue 3 data fetching and mutations with @volverjs/query-vue (a Pinia store over the repository pattern with caching and a normalized item cache).",
+  "author": {
+    "name": "8 Wave S.r.l."
+  },
+  "homepage": "https://github.com/volverjs/query-vue",
+  "repository": "https://github.com/volverjs/query-vue",
+  "license": "MIT",
+  "keywords": ["vue", "pinia", "repository", "query", "data-fetching"]
+}

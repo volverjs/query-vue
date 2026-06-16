@@ -1,0 +1,13 @@
+{
+  "name": "volverjs-query-vue",
+  "owner": {
+    "name": "8 Wave S.r.l."
+  },
+  "plugins": [
+    {
+      "name": "volverjs-query-vue",
+      "source": "./",
+      "description": "Helps agents build Vue 3 data fetching and mutations with @volverjs/query-vue (a Pinia store over the repository pattern with caching and a normalized item cache)."
+    }
+  ]
+}
