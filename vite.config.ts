@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync } from 'node:fs'
+import { copyFileSync, existsSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import ESLint from '@nabla/vite-plugin-eslint'
 import vue from '@vitejs/plugin-vue'
@@ -48,12 +48,28 @@ export default defineConfig({
                 rootDir: path.resolve(__dirname, 'src'),
             },
             // Manually copy types after build since unplugin-dts bug with only types export
-            afterBuild: () => {
+            afterBuild: (emittedFiles) => {
                 // copy src/types.ts to dist/types.d.ts
                 const srcTypesPath = path.resolve(__dirname, 'src/types.ts')
                 const distTypesPath = path.resolve(__dirname, 'dist/types.d.ts')
                 if (existsSync(srcTypesPath)) {
                     copyFileSync(srcTypesPath, distTypesPath)
+                }
+                // unplugin-dts emits a non-portable relative import for
+                // `@vue/shared` (e.g. `../node_modules/@vue/shared`). Rewrite it
+                // to a bare specifier so the published types resolve for
+                // consumers (it is provided transitively by the `vue` peer dep).
+                for (const [filePath, content] of emittedFiles) {
+                    if (!filePath.endsWith('.d.ts')) {
+                        continue
+                    }
+                    const rewritten = content.replace(
+                        /(['"])(?:\.\.\/)*node_modules\/@vue\/shared\1/g,
+                        '$1@vue/shared$1',
+                    )
+                    if (rewritten !== content) {
+                        writeFileSync(filePath, rewritten)
+                    }
                 }
             },
         }),

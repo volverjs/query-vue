@@ -14,7 +14,11 @@ export type StoreRepositoryOptions<T> = {
     defaultDebounce?: number | Ref<number>
     defaultParameters?: ParamMap
     hashFunction?: (str: string) => number
-    cleanUpEvery?: number
+    /**
+     * Interval (in ms) used to schedule the store clean up on idle.
+     * Pass `0` or `false` to disable the automatic clean up.
+     */
+    cleanUpEvery?: number | false
 }
 
 export type StoreRepositoryHash<T = unknown> = {
@@ -57,6 +61,13 @@ export type StoreRepositoryReadOptions<
     repositoryOptions?: Ref<RepositoryReadOptions> | RepositoryReadOptions
 }
 
+/**
+ * The actions `submit()` can perform. `read` and `remove` are intentionally
+ * excluded: a submit always maps to a `create` (POST) or an `update` (PUT).
+ */
+type SubmitActionEnum = StoreRepositoryAction.create | StoreRepositoryAction.update
+export type StoreRepositorySubmitAction = SubmitActionEnum | `${SubmitActionEnum}`
+
 export type StoreRepositorySubmitOptions<
     T,
     RepositorySubmitOptions = Record<string, unknown>,
@@ -72,7 +83,7 @@ export type StoreRepositorySubmitOptions<
     autoExecuteOnWindowFocus?: boolean
     autoExecuteOnDocumentVisibility?: boolean
     disablePayloadSync?: boolean
-    action?: Ref<StoreRepositoryAction | `${StoreRepositoryAction}`> | StoreRepositoryAction | `${StoreRepositoryAction}`
+    action?: Ref<StoreRepositorySubmitAction> | StoreRepositorySubmitAction
     repositoryOptions?: Ref<RepositorySubmitOptions> | RepositorySubmitOptions
 }
 
@@ -80,6 +91,7 @@ export type StoreRepositoryRemoveOptions<
     RepositoryRemoveOptions = Record<string, unknown>,
 > = {
     name?: string
+    keepAlive?: boolean
     immediate?: boolean
     repositoryOptions?: Ref<RepositoryRemoveOptions> | RepositoryRemoveOptions
 }

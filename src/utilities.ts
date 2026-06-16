@@ -24,9 +24,11 @@ import {
 import { StoreRepositoryStatus } from './constants'
 
 export function clone<T>(value: T): T {
+    if (value === undefined || value === null) {
+        return value
+    }
     if (
         typeof value === 'object'
-        && value !== null
         && 'clone' in value
         && typeof value.clone === 'function'
     ) {
@@ -88,13 +90,13 @@ export function initAutoExecuteReadHandlers<TResponse>(
         immediate = true,
         executeWhen = () => true,
         autoExecute = false,
-        autoExecuteDebounce = 500,
+        autoExecuteDebounce = 0,
         autoExecuteOnWindowFocus = false,
         autoExecuteOnDocumentVisibility = false,
     } = options
     let ignoreUpdates: IgnoredUpdater | undefined
     let stopHandler: WatchStopHandle | undefined
-    let executeOnFocunsStopHandler: WatchStopHandle | undefined
+    let executeOnFocusStopHandler: WatchStopHandle | undefined
     let documentVisibilityStopHandler: WatchStopHandle | undefined
     const normalizedParams = isRef(params)
         ? (params as Ref<ParamMap>)
@@ -145,7 +147,7 @@ export function initAutoExecuteReadHandlers<TResponse>(
     // execute on window focus
     if (autoExecuteOnWindowFocus) {
         const focused = useWindowFocus()
-        executeOnFocunsStopHandler = watch(focused, (isFocused) => {
+        executeOnFocusStopHandler = watch(focused, (isFocused) => {
             if (isFocused && normalizedExecuteWhen.value) {
                 execute()
             }
@@ -162,7 +164,7 @@ export function initAutoExecuteReadHandlers<TResponse>(
     }
     const stop = () => {
         stopHandler?.()
-        executeOnFocunsStopHandler?.()
+        executeOnFocusStopHandler?.()
         documentVisibilityStopHandler?.()
     }
     return { stop, ignoreUpdates }
@@ -204,13 +206,13 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
         immediate = true,
         executeWhen = () => true,
         autoExecute = false,
-        autoExecuteDebounce = 500,
+        autoExecuteDebounce = 0,
         autoExecuteOnWindowFocus = false,
         autoExecuteOnDocumentVisibility = false,
     } = options
     let ignoreUpdates: IgnoredUpdater | undefined
     let stopHandler: WatchStopHandle | undefined
-    let executeOnFocunsStopHandler: WatchStopHandle | undefined
+    let executeOnFocusStopHandler: WatchStopHandle | undefined
     let documentVisibilityStopHandler: WatchStopHandle | undefined
     const normalizedPayload = isRef(payload) ? payload : computed(() => payload)
     const normalizedParams = isRef(params)
@@ -262,7 +264,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
     // execute on window focus
     if (autoExecuteOnWindowFocus) {
         const focused = useWindowFocus()
-        executeOnFocunsStopHandler = watch(focused, (isFocused) => {
+        executeOnFocusStopHandler = watch(focused, (isFocused) => {
             if (isFocused && normalizedExecuteWhen.value) {
                 resubmit()
             }
@@ -279,13 +281,13 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
     }
     const stop = () => {
         stopHandler?.()
-        executeOnFocunsStopHandler?.()
+        executeOnFocusStopHandler?.()
         documentVisibilityStopHandler?.()
     }
     return { stop, ignoreUpdates }
 }
 
-export function getRandomValues(length: number) {
-    const array = new Uint32Array(length)
+export function getRandomValues() {
+    const array = new Uint32Array(1)
     return crypto.getRandomValues(array)[0]
 }
