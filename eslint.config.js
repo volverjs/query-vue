@@ -22,5 +22,8 @@ export default antfu({
         'sort-imports': 'off',
     },
 }, {
-    ignores: ['.vscode', 'dist', 'node_modules'],
+    // `skills` and `.claude-plugin` ship the agent skill / Claude Code plugin:
+    // docs and manifests for end users, not library source, so the library's
+    // own style rules (4-space indent, etc.) should not apply to them.
+    ignores: ['.vscode', 'dist', 'node_modules', 'skills', '.claude-plugin'],
 })
