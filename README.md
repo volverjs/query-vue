@@ -695,7 +695,7 @@ const {
     isSuccess
     // ...
 } = remove(
-    /* The parameters map (required) */
+    /* The parameters map (default: undefined) */
     params,
     /* The options object (default: undefined) */
     {

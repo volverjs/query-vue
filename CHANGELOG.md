@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.6] - 2026-06-16
+
+### Added
+
+- `keepAlive` option for the `remove()` action, consistent with `read()` and `submit()`;
+- `volverjs-query-vue` Claude Code plugin / agent skill (under `skills/`) that teaches AI coding agents how to use the library; installable with `/plugin marketplace add volverjs/query-vue`.
+
+### Changed
+
+- `submit()` `action` option is now restricted to `'create' | 'update'` (the only meaningful write operations);
+- `submit().data` and the `remove()` action `errors` are now always arrays (empty instead of `undefined`), consistent with `read()`.
+
+### Fix
+
+- Portable type declarations: the emitted `.d.ts` referenced `@vue/shared` through a non-portable `.pnpm/…` path (TS2883), which broke type-checking for consumers; it now emits a bare `@vue/shared` specifier;
+- `submit()` derived query names from `Date.now()`, so two submissions in the same millisecond could collide and overwrite each other's state; query names are now random;
+- `submit()` could throw and flip to an error state on an empty response because `clone()` failed on `undefined`; `clone()` now returns `undefined`/`null` untouched;
+- `cleanUpEvery` could not be disabled because of the default fallback; passing `0` or `false` now disables the automatic idle clean up;
+- `cleanUp()` never evicted items from the normalized cache, so it could grow unbounded; items no longer referenced by any hash are now removed.
+
 # [2.0.5] - 2026-03-26
 
 ### Fix
