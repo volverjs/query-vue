@@ -9,7 +9,6 @@ import type {
     StoreRepositoryQuery,
     StoreRepositoryReadOptions,
     StoreRepositoryRemoveOptions,
-    StoreRepositorySubmitAction,
     StoreRepositorySubmitOptions,
 } from './types'
 import { Hash } from '@volverjs/data/hash'
@@ -21,7 +20,6 @@ import {
     isRef,
     markRaw,
     onBeforeUnmount,
-
     ref,
     toRefs,
     unref,
@@ -262,9 +260,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
         const _cleanUpItems = () => {
             // collect every key still referenced by a living hash
             const referencedKeys = new Set<unknown>()
-            storeHashes.value.forEach((hash) => {
+            for (const hash of storeHashes.value.values()) {
                 hash.keys?.forEach(key => referencedKeys.add(key))
-            })
+            }
             // drop items that are no longer referenced to avoid unbounded growth
             storeItems.value.forEach((_item, key) => {
                 if (!referencedKeys.has(key)) {
@@ -1151,7 +1149,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
 export {
     StoreRepositoryAction,
     StoreRepositoryStatus,
-}
+} from './constants'
 
 export type {
     ParamMap,
@@ -1162,4 +1160,4 @@ export type {
     StoreRepositoryRemoveOptions,
     StoreRepositorySubmitAction,
     StoreRepositorySubmitOptions,
-}
+} from './types'
