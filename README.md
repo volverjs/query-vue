@@ -887,6 +887,16 @@ const { RemoveProvider } = useUsersStore()
 
 By default `RemoveProvider` will not execute the `remove()` action immediately, but you can change this behavior with `immediate` option.
 
+## Claude Code skill
+
+This repository ships an installable [Claude Code](https://docs.claude.com/en/docs/claude-code) skill that helps agents build Vue 3 data fetching and mutations with `@volverjs/query-vue`. It covers store scaffolding with `defineStoreRepository`, the `read`/`submit`/`remove` actions and their options, the provider components, and the caching/normalized-item-cache model.
+
+```bash
+npx skills add volverjs/query-vue
+```
+
+See [`skills/volverjs-query-vue/README.md`](skills/volverjs-query-vue/README.md) for details.
+
 ## Acknoledgements
 
 `@volverjs/query-vue` is inspired by [`React Query`](https://react-query-v3.tanstack.com/).

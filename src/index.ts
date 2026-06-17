@@ -46,8 +46,8 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
         action: StoreRepositoryAction,
         options?: { directory?: boolean },
     ) {
-        const prefix = options?.directory ? 'directory' : undefined
-        return `${prefix ? `${prefix}-` : ''}${action}-${hashFunction(
+        const prefix = options?.directory ? 'directory-' : ''
+        return `${prefix}${action}-${hashFunction(
             JSON.stringify(unref(params)),
         )}`
     }
