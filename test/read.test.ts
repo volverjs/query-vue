@@ -1,13 +1,11 @@
-import { createTestingPinia } from '@pinia/testing'
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
-import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import createFetchMock from 'vitest-fetch-mock'
+import { flushPromises } from '@vue/test-utils'
+import { describe, expect, it } from 'vitest'
 import { computed, nextTick, ref } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import ReadProvider from './components/ReadProvider.vue'
+import { fetchMock, mountWithPinia, setupStoreTest } from './utils'
 
-const fetchMock = createFetchMock(vi)
 const httpClient = new HttpClient({
     prefixUrl: 'https://myapi.com/v1',
 })
@@ -15,31 +13,11 @@ type Entity = { id: string }
 const repositoryHttp = new RepositoryHttp<Entity>(httpClient, ':id?')
 
 describe('read', () => {
-    // Mount app
-    mount(
-        {
-            template: '<div></div>',
-        },
-        {
-            global: {
-                plugins: [createTestingPinia({ stubActions: false })],
-            },
-        },
-    )
-
-    // Reset mocks for each test
-    beforeEach(() => {
-        fetchMock.enableMocks()
-        fetchMock.resetMocks()
-    })
+    setupStoreTest()
 
     it('read from a parameters map with component provider', async () => {
         fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
-        const wrapper = mount(ReadProvider, {
-            global: {
-                plugins: [createTestingPinia({ stubActions: false })],
-            },
-        })
+        const wrapper = mountWithPinia(ReadProvider)
         expect(wrapper.text()).toContain('Loading...')
         await flushPromises()
         await nextTick()

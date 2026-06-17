@@ -72,6 +72,56 @@ export const useUsersStore = defineStoreRepository(
 
 In a component you can use the `useUsersStore()` composable to get store actions and getters.
 
+### Store options
+
+`defineStoreRepository()` accepts an optional third argument to configure the store defaults:
+
+```ts
+export const useUsersStore = defineStoreRepository(
+    usersRepository,
+    'users',
+    {
+        /*
+         * The property (or getter) used to uniquely identify an item.
+         * Can be a key of the item, a function or an object with a `name`
+         * and a `get` function (default: 'id').
+         * For example:
+         * `keyProperty: 'uuid'`
+         * `keyProperty: (item) => item.uuid`
+         * `keyProperty: { name: 'uuid', get: (item) => item.uuid }`
+         */
+        keyProperty: 'id',
+        /*
+         * Default cache time (in milliseconds) for every query,
+         * can be overridden per `read()` with the `persistence` option
+         * (default: 60 * 60 * 1000)
+         */
+        defaultPersistence: 60 * 60 * 1000,
+        /*
+         * Default auto execute debounce (in milliseconds) for every query,
+         * can be overridden per action with the `autoExecuteDebounce` option
+         * (default: 0)
+         */
+        defaultDebounce: 0,
+        /*
+         * Parameters merged into every request (default: {})
+         */
+        defaultParameters: {},
+        /*
+         * The function used to hash the request parameters
+         * (default: Hash.cyrb53 from `@volverjs/data`)
+         */
+        hashFunction: undefined,
+        /*
+         * Interval (in milliseconds) used to schedule the store clean up
+         * on idle. Pass `0` or `false` to disable the automatic clean up
+         * (default: 3 * 1000)
+         */
+        cleanUpEvery: 3 * 1000,
+    }
+)
+```
+
 ## Read
 
 `read()` action allow to read data from the repository:
@@ -645,7 +695,7 @@ const {
     isSuccess
     // ...
 } = remove(
-    /* The parameters map (required) */
+    /* The parameters map (default: undefined) */
     params,
     /* The options object (default: undefined) */
     {
@@ -654,6 +704,11 @@ const {
          * if not defined, the query name will be generated
          */
         name: undefined,
+        /*
+         * Keep the query alive when
+         * the component is unmounted (default: false)
+         */
+        keepAlive: false,
         /* Execute the `remove()` action immediately (default: true) */
         immediate: true,
         /*

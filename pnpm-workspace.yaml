@@ -1,0 +1,6 @@
+minimumReleaseAgeExclude:
+  - '@volverjs/data@2.0.5'
+  - happy-dom@20.10.4
+
+onlyBuiltDependencies:
+  - esbuild

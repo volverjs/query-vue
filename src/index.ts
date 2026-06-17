@@ -20,7 +20,6 @@ import {
     isRef,
     markRaw,
     onBeforeUnmount,
-
     ref,
     toRefs,
     unref,
@@ -258,12 +257,27 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             })
         }
 
+        const _cleanUpItems = () => {
+            // collect every key still referenced by a living hash
+            const referencedKeys = new Set<unknown>()
+            for (const hash of storeHashes.value.values()) {
+                hash.keys?.forEach(key => referencedKeys.add(key))
+            }
+            // drop items that are no longer referenced to avoid unbounded growth
+            storeItems.value.forEach((_item, key) => {
+                if (!referencedKeys.has(key)) {
+                    storeItems.value.delete(key)
+                }
+            })
+        }
+
         const cleanUp = () => {
             _cleanUpQueries()
             _cleanUpHashes()
+            _cleanUpItems()
         }
 
-        if (cleanUpEvery !== undefined) {
+        if (cleanUpEvery) {
             const { idle } = useIdle(cleanUpEvery)
             watch(idle, (isIdle) => {
                 if (isIdle) {
@@ -278,8 +292,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
         const getItemsByKeys = (keys: AnyKey[] | Ref<AnyKey[]>) =>
             computed(() => {
                 return unref(keys).reduce((acc: TResponse[], key) => {
-                    if (storeItems.value.get(key)) {
-                        acc.push(storeItems.value.get(key) as TResponse)
+                    const item = storeItems.value.get(key)
+                    if (item) {
+                        acc.push(item)
                     }
                     return acc
                 }, [])
@@ -359,8 +374,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     if (keys.length) {
                         data.push(
                             ...keys.reduce((acc: TResponse[], key) => {
-                                if (storeItems.value.get(key)) {
-                                    acc.push(storeItems.value.get(key) as TResponse)
+                                const item = storeItems.value.get(key)
+                                if (item) {
+                                    acc.push(item)
                                 }
                                 return acc
                             }, []),
@@ -412,7 +428,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 Parameters<typeof repository.read>[1]
             > = {},
         ) => {
-            const queryName = options?.name ?? getRandomValues(1).toString()
+            const queryName = options?.name ?? getRandomValues().toString()
             const storeQuery = getQueryByName(queryName)
             const executeReturn = (aborted = false) => ({
                 query: storeQuery.value,
@@ -667,7 +683,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 Parameters<typeof repository.create>[2]
             > = {},
         ) => {
-            const queryName = options?.name ?? Date.now().toString()
+            const queryName = options?.name ?? getRandomValues().toString()
             const storeQuery = getQueryByName(queryName)
 
             const executeReturn = (aborted = false) => ({
@@ -839,7 +855,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 isSuccess: computed(() => storeQuery.value?.isSuccess ?? false),
                 errors: computed(() => storeQuery.value?.errors ?? []),
                 error: computed(() => storeQuery.value?.errors?.[0]),
-                data: computed(() => storeQuery.value?.data),
+                data: computed(() => storeQuery.value?.data ?? []),
                 item: computed(() => storeQuery.value?.data?.[0]),
                 metadata: computed(() => storeQuery.value?.metadata),
                 execute,
@@ -914,18 +930,19 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             params?: Ref<ParamMap> | ParamMap,
             {
                 name,
+                keepAlive,
                 immediate = true,
                 repositoryOptions,
             }: StoreRepositoryRemoveOptions<
                 Parameters<typeof repository.remove>[1]
             > = {},
         ) => {
-            const queryName = name ?? getRandomValues(1).toString()
+            const queryName = name ?? getRandomValues().toString()
             const storeQuery = getQueryByName(queryName)
             const executeReturn = (aborted = false) => ({
                 query: storeQuery.value,
                 metadata: storeQuery.value?.metadata,
-                errors: storeQuery.value?.errors,
+                errors: storeQuery.value?.errors ?? [],
                 error: storeQuery.value?.errors?.[0],
                 isSuccess: storeQuery.value?.isSuccess ?? false,
                 isError: storeQuery.value?.isError ?? false,
@@ -1003,7 +1020,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             }
             // cleanup
             const cleanup = () => {
-                _disableQuery(queryName)
+                if (!keepAlive) {
+                    _disableQuery(queryName)
+                }
             }
             tryOnUnmounted(() => {
                 cleanup()
@@ -1130,7 +1149,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
 export {
     StoreRepositoryAction,
     StoreRepositoryStatus,
-}
+} from './constants'
 
 export type {
     ParamMap,
@@ -1139,5 +1158,6 @@ export type {
     StoreRepositoryQuery,
     StoreRepositoryReadOptions,
     StoreRepositoryRemoveOptions,
+    StoreRepositorySubmitAction,
     StoreRepositorySubmitOptions,
-}
+} from './types'
