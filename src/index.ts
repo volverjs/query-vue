@@ -383,13 +383,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     )
                     if (keys.length) {
                         data.push(
-                            ...keys.reduce((acc: TResponse[], key) => {
-                                const item = storeItems.value.get(key)
-                                if (item) {
-                                    acc.push(item)
-                                }
-                                return acc
-                            }, []),
+                            ...keys
+                                .map(key => storeItems.value.get(key))
+                                .filter(item => item !== undefined),
                         )
                     }
                     return {
