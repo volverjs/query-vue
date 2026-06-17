@@ -316,7 +316,17 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         isLoading,
                         isSuccess,
                         errors,
-                    } = [...query.storeHashes].reduce(
+                    } = [...query.storeHashes].reduce<{
+                        keys: unknown[]
+                        data: TResponse[]
+                        metadata: ParamMap
+                        params: ParamMap
+                        timestamp: number
+                        isLoading: boolean
+                        isError: boolean
+                        isSuccess: boolean
+                        errors: Error[]
+                    }>(
                         (acc, item) => {
                             if (storeHashes.value.has(item)) {
                                 const {
@@ -360,15 +370,15 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                             return acc
                         },
                         {
-                            keys: [] as unknown[],
-                            data: [] as TResponse[],
-                            metadata: {} as ParamMap,
-                            params: {} as ParamMap,
+                            keys: [],
+                            data: [],
+                            metadata: {},
+                            params: {},
                             timestamp: 0,
                             isLoading: false,
                             isError: false,
                             isSuccess: false,
-                            errors: [] as Error[],
+                            errors: [],
                         },
                     )
                     if (keys.length) {
