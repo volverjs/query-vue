@@ -4,9 +4,11 @@
         "jsx": "preserve",
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
         "useDefineForClassFields": true,
-        "baseUrl": ".",
         "module": "ESNext",
-        "moduleResolution": "Node",
+        "moduleResolution": "Bundler",
+        "paths": {
+            "@vue/shared": ["./node_modules/@vue/shared"]
+        },
         "resolveJsonModule": true,
         "types": ["vitest/globals", "vite/client"],
         "strict": true,
@@ -33,5 +35,5 @@
         "skipLibCheck": true,
         "noErrorTruncation": true
     },
-    "include": ["src/*", "test/*", "test/**/*"]
+    "include": ["vite-env.d.ts", "src/*", "test/*", "test/**/*"]
 }

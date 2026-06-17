@@ -1,13 +1,11 @@
-import { createTestingPinia } from '@pinia/testing'
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
-import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import createFetchMock from 'vitest-fetch-mock'
+import { flushPromises } from '@vue/test-utils'
+import { describe, expect, it } from 'vitest'
 import { nextTick, ref } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import SubmitProvider from './components/SubmitProvider.vue'
+import { fetchMock, mountWithPinia, setupStoreTest } from './utils'
 
-const fetchMock = createFetchMock(vi)
 const httpClient = new HttpClient({
     prefixUrl: 'https://myapi.com/v1',
 })
@@ -15,23 +13,7 @@ type Entity = { id?: string, name: string }
 const repositoryHttp = new RepositoryHttp<Entity>(httpClient, ':subroute?/:id?')
 
 describe('submit', () => {
-    // Mount app
-    mount(
-        {
-            template: '<div></div>',
-        },
-        {
-            global: {
-                plugins: [createTestingPinia({ stubActions: false })],
-            },
-        },
-    )
-
-    // Reset mocks for each test
-    beforeEach(() => {
-        fetchMock.enableMocks()
-        fetchMock.resetMocks()
-    })
+    setupStoreTest()
 
     it('submit an item with POST with component provider', async () => {
         fetchMock.mockResponseOnce(
@@ -40,11 +22,7 @@ describe('submit', () => {
             ]),
             {},
         )
-        const wrapper = mount(SubmitProvider, {
-            global: {
-                plugins: [createTestingPinia({ stubActions: false })],
-            },
-        })
+        const wrapper = mountWithPinia(SubmitProvider)
         const form = wrapper.find('form')
         const firstname = wrapper.find('input[name="firstname"]')
         const lastname = wrapper.find('input[name="lastname"]')
