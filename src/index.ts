@@ -207,7 +207,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                                 ...storeQuery.storeHashes,
                                 hashKey,
                             ]),
-                        } as StoreRepositoryQuery)
+                        })
                         return
                     }
                     if (!storeQuery.storeHashes.has(hashKey)) {
@@ -224,7 +224,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 storeQueries.value.set(queryName, {
                     enabled: true,
                     storeHashes: new Set([hashKey]),
-                } as StoreRepositoryQuery)
+                })
             }
         }
 
@@ -234,7 +234,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 storeQueries.value.set(name, {
                     ...query,
                     enabled: false,
-                } as StoreRepositoryQuery)
+                })
             }
         }
 
