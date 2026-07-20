@@ -58,7 +58,7 @@
     },
     "peerDependencies": {
         "@volverjs/data": "^2.0.x",
-        "@vueuse/core": "^14.0.x",
+        "@vueuse/core": "^14.3.x",
         "pinia": "^4.0.x",
         "vue": "^3.5.x"
     },
