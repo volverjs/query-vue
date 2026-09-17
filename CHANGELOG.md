@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Dependencies update: `@vueuse/core` `^14.3.0` -> `^15.0.0` and `vitest` `^4.1.10` -> `^5.0.1` (major bumps), plus minor/patch updates to `@antfu/eslint-config`, `@types/node`, `@vitejs/plugin-vue`, `@vue/language-core`, `@vue/shared`, `@vue/test-utils`, `eslint`, `happy-dom`, `pinia`, `unplugin-dts`, `vite`, `vue` and `vue-tsc`; `packageManager` bumped to `pnpm@12.4.2`;
+- `@vueuse/core` peer dependency range widened to `^14.3.0 || ^15.0.0`, so consumers can stay on v14 or move to v15;
+- peer dependency ranges normalized from the redundant `^x.y.x` form to plain `^x.y.z` (same resolved intervals).
+
 ## [2.0.7] - 2026-07-20
 
 ### Changed
