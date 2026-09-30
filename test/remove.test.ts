@@ -1,6 +1,6 @@
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
 import { flushPromises } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 import { nextTick } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import RemoveProvider from './components/RemoveProvider.vue'
@@ -71,5 +71,48 @@ describe('remove', () => {
         expect(isLoadingRemove.value).toBe(false)
         expect(isSuccessRemove.value).toBe(true)
         expect(getItemByKey('12345').value).toBe(undefined)
+    })
+
+    it('awaits the removal and resolves to plain values', async () => {
+        fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
+        const useStoreReposotory = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'remove-await',
+        )
+        const { read, getItemByKey, remove } = useStoreReposotory()
+        await read({ id: '12345' })
+        expect(getItemByKey('12345').value?.id).toBe('12345')
+
+        fetchMock.mockResponseOnce('', { status: 204 })
+        const result = remove({ id: '12345' })
+        const { isSuccess, isError, error, aborted } = await result
+        expectTypeOf(isSuccess).toEqualTypeOf<boolean>()
+        expect(result.isLoading.value).toBe(false)
+        expect(isSuccess).toBe(true)
+        expect(isError).toBe(false)
+        expect(error).toBeUndefined()
+        expect(aborted).toBe(false)
+        expect(getItemByKey('12345').value).toBe(undefined)
+        const request = fetchMock.mock.calls[1][0] as Request
+        expect(request.method).toEqual('DELETE')
+        expect(fetchMock.mock.calls.length).toBe(2)
+    })
+
+    it('awaits a failed removal and resolves with isError', async () => {
+        // 400 is not retried by ky, so a single mocked response is enough
+        fetchMock.mockResponseOnce('Bad Request', { status: 400 })
+        const useStoreReposotory = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'remove-await-error',
+        )
+        const { remove } = useStoreReposotory()
+        const { isSuccess, isError, error, errors, aborted } = await remove({
+            id: '12345',
+        })
+        expect(isSuccess).toBe(false)
+        expect(isError).toBe(true)
+        expect(error).toBeInstanceOf(Error)
+        expect(errors.length).toBe(1)
+        expect(aborted).toBe(false)
     })
 })

@@ -162,11 +162,20 @@ do not** (their default `options` set `immediate: false`): you trigger them via 
 - **Caching is by params hash + persistence.** Re-reading the same params within the persistence
   window won't refetch. Force a network call with `execute(true)`; bypass caching with
   `persistence: 0`.
+- **Branch on awaited values, never on refs.** Since 2.1.0 every action is awaitable:
+  `const { isSuccess, error } = await remove({ id })` waits for the request and yields plain
+  booleans (it never rejects). The non-awaited object holds refs, and `if (isSuccess)` on a
+  `ComputedRef` is always true. On 2.0.x, create the action with `immediate: false` and
+  `await execute()` instead. Awaited outside `setup()` (event handlers), the action releases
+  its query once it settles.
 - **Prefer `isLoading`/`isSuccess`/`status` over inspecting `data`** to detect state. `data` is
   always an array (empty when there's nothing), so `data.length === 0` is "empty", not "not loaded".
 - **Error handling.** `RepositoryHttp` (via `ky`) rejects on non-2xx; the action catches it and
   sets `isError`/`error`/`errors`. Render from those refs.
-- **Cleanup & `keepAlive`.** On unmount an action's query is disabled and eventually cleaned up.
+- **Cleanup & `keepAlive`.** When the effect scope that created an action is disposed (component
+  unmount, `effectScope().stop()`, a Pinia setup store's `$dispose()`), its query is disabled and
+  eventually cleaned up. With no scope (event handlers), awaiting the action releases its query
+  once it settles; an action created there and not awaited needs `cleanup()`.
   Pass `keepAlive: true` to keep a query (and its cache) alive across unmounts, useful for data
   shared between routes. Disable the idle cleanup entirely with `cleanUpEvery: 0` (or `false`).
 - **`autoExecute` is debounced.** It re-runs on reactive `params`/`payload` changes;

@@ -30,7 +30,7 @@ const {
   execute,     // (newParamsOrForce?, newRepositoryOptionsOrForce?) => Promise<...>
   reset,       // () => void, resets this query
   stop,        // () => void, stops the autoExecute watchers
-  cleanup,     // () => void, disables the query (called automatically on unmount)
+  cleanup,     // () => void, disables the query (called automatically when its effect scope is disposed)
   ignoreUpdates, // (cb) => void, runs cb without triggering autoExecute watchers
 } = read(params, options)
 ```
@@ -48,6 +48,33 @@ execute({ id: 2 }, { signal })     // new params + per-call repositoryOptions
 
 The first argument is either new params or a boolean "force"; the second is either
 repositoryOptions or a boolean "force".
+
+### Awaiting (since 2.1.0)
+
+The returned object is awaitable. `await read(...)` waits for the execution the call started and
+resolves to the plain snapshot `execute()` resolves to: booleans and values, not refs.
+
+```ts
+const { isSuccess, isError, error, errors, data, item, metadata, query, aborted } = await read({ id: 1 })
+```
+
+- Never rejects: a failed request (also one that cannot be built, e.g. a missing path param)
+  resolves with `isError: true` and `error`; an aborted one (replaced by an `execute()` with other
+  params) resolves with `aborted: true`. With `RepositoryHttp` from `@volverjs/data` 2.0.x, a read
+  failing without an HTTP response (network error, invalid JSON) is reported as `aborted`, so
+  never treat `aborted` as a success.
+- Settles on the call's own execution only. With `autoExecute`, the executions a params change
+  starts later don't change the result; `await execute()` to wait for one of them.
+- If the call starts nothing (`immediate: false`, or `executeWhen` false at call time), awaiting
+  resolves at once to the current snapshot and sends no request.
+- Awaiting never starts a request: `Promise.resolve()`, `Promise.all()` or returning the object
+  from an async function do not fetch twice.
+- The snapshot does not update. Keep the returned object to use both:
+  `const users = read(); const { isSuccess } = await users` and bind `users.data` in the template.
+- With no owning effect scope (an event handler), awaiting also releases the query once it
+  settles, unless `keepAlive: true`.
+- On 2.0.x the object is not awaitable: `await read()` returns it at once and `isSuccess` is a
+  `ComputedRef`, always truthy. There, use `immediate: false` and `await execute()`.
 
 ## Options
 
@@ -69,7 +96,7 @@ read(params, {
    */
   directory: false,
 
-  /* Keep the query (and its cache) alive when the component unmounts. Default false. */
+  /* Keep the query (and its cache) alive when the component unmounts (and, with no owner, after an awaited execution). Default false. */
   keepAlive: false,
 
   /* Execute as soon as read() is called. Default true. */

@@ -1,6 +1,6 @@
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
 import { flushPromises } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 import { computed, nextTick, ref } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import ReadProvider from './components/ReadProvider.vue'
@@ -414,5 +414,45 @@ describe('read', () => {
         expect(isSuccess.value).toBe(true)
         expect(data.value.length).toBe(4)
         expect(fetchMock.mock.calls.length).toBe(2)
+    })
+
+    it('awaits the read and resolves to plain values', async () => {
+        fetchMock.mockResponseOnce(JSON.stringify([{ id: '12345' }]))
+        const useStoreReposotory = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-await',
+        )
+        const { read } = useStoreReposotory()
+        const result = read({ id: '12345' })
+        const { isSuccess, isError, data, item, aborted } = await result
+        expectTypeOf(isSuccess).toEqualTypeOf<boolean>()
+        expectTypeOf(data).toEqualTypeOf<Entity[]>()
+        expect(result.isLoading.value).toBe(false)
+        expect(isSuccess).toBe(true)
+        expect(isError).toBe(false)
+        expect(aborted).toBe(false)
+        expect(data[0].id).toBe('12345')
+        expect(item?.id).toBe('12345')
+        // the reactive fields keep working next to the awaited snapshot
+        expect(result.item.value?.id).toBe('12345')
+        expect(fetchMock.mock.calls.length).toBe(1)
+    })
+
+    it('awaits a failed read and resolves with isError', async () => {
+        // 400 is not retried by ky, so a single mocked response is enough
+        fetchMock.mockResponseOnce('Bad Request', { status: 400 })
+        const useStoreReposotory = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-await-error',
+        )
+        const { read } = useStoreReposotory()
+        const { isSuccess, isError, error, data, aborted } = await read({
+            id: '12345',
+        })
+        expect(isSuccess).toBe(false)
+        expect(isError).toBe(true)
+        expect(error).toBeInstanceOf(Error)
+        expect(data).toEqual([])
+        expect(aborted).toBe(false)
     })
 })

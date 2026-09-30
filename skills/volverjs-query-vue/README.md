@@ -18,7 +18,7 @@ The skill is specialized for real `@volverjs/query-vue` implementation patterns:
 - **The three actions**: `read()` (GET-style fetching), `submit()` (create/update, auto-inferred POST/PUT), and `remove()` (DELETE with cache eviction), plus their options (`autoExecute`, `group`, `directory`, `executeWhen`/`resetWhen`, `persistence`, `keepAlive`…).
 - **Provider components**: `ReadProvider`, `SubmitProvider`, and `RemoveProvider`, including scoped-slot usage and `v-model` payload sync.
 - **The cache model**: query tracking, params-hash request caching, the normalized item cache (`getItemByKey`, `getItemsByKeys`), and persistence windows.
-- **Lifecycle**: automatic idle `cleanUp()`, `keepAlive`, query reset, and unmount cleanup.
+- **Lifecycle**: automatic idle `cleanUp()`, `keepAlive`, query reset, and cleanup on unmount or effect scope dispose.
 - **Best practices**: error handling, reactivity preservation in templates, and avoiding common footguns.
 
 ## Usage
