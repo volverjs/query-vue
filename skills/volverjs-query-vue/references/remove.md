@@ -8,7 +8,7 @@ the normalized cache by their key. Unlike `read`/`submit`, its API is intentiona
 const result = remove(params, options)
 ```
 
-- `params` — params map (or ref) identifying what to delete. Merged with `defaultParameters`.
+- `params`: params map (or ref) identifying what to delete. Merged with `defaultParameters`.
   The key param (e.g. `id`) determines which cached items are evicted; it may be a single value
   or an array.
 
@@ -73,11 +73,11 @@ function deleteUser(id: number) { execute({ id }) }
 ## RemoveProvider
 
 A component that runs `remove()` via a scoped slot. It does **not** execute immediately (default
-`options.immediate` is `false`) — call the slot's `execute()`.
+`options.immediate` is `false`): call the slot's `execute()`.
 
 Props:
-- `params` — params map.
-- `options` — a `remove()` options object.
+- `params`: params map.
+- `options`: a `remove()` options object.
 
 The slot receives `isLoading`, `isError`, `isSuccess`, `error`, `errors`, `status`, `query`,
 `execute`, `cleanup`.

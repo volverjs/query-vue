@@ -7,9 +7,9 @@ or an update is **inferred from the payload's key property**, or you can force i
 const result = submit(payload, params, options)
 ```
 
-- `payload` — the item, an array of items, or a **`Ref`** to either. A ref enables `autoExecute`
+- `payload`: the item, an array of items, or a **`Ref`** to either. A ref enables `autoExecute`
   and two-way sync.
-- `params` — params map (or ref). Merged with the store's `defaultParameters`. If the payload
+- `params`: params map (or ref). Merged with the store's `defaultParameters`. If the payload
   carries a key and the params don't already include it, the key is added to params automatically
   (so the URL targets the right record on update).
 
@@ -26,8 +26,8 @@ Same reactive shape as `read()`:
 
 ```ts
 const {
-  data,        // TResponse[] — the server response (always an array)
-  item,        // TResponse | undefined — data[0]
+  data,        // TResponse[]: the server response (always an array)
+  item,        // TResponse | undefined: data[0]
   isLoading, isSuccess, isError,
   error, errors,
   metadata,
@@ -145,13 +145,13 @@ submit([{ username: 'a' }, { username: 'b' }]) // create (no keys) -> POST with 
 ## SubmitProvider
 
 A component that runs `submit()` via a scoped slot, with `v-model` for the payload.
-It does **not** execute immediately (default `options.immediate` is `false`) — trigger it with the
+It does **not** execute immediately (default `options.immediate` is `false`): trigger it with the
 slot's `execute()`.
 
 Props:
-- `v-model` (`modelValue`) — the payload; kept in sync with the server response.
-- `params` — params map.
-- `options` — a `submit()` options object.
+- `v-model` (`modelValue`): the payload; kept in sync with the server response.
+- `params`: params map.
+- `options`: a `submit()` options object.
 
 ```vue
 <script setup lang="ts">

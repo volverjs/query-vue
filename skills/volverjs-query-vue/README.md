@@ -56,16 +56,16 @@ Add delete-with-confirmation using remove() and RemoveProvider, evicting the ite
 
 When coding, verify implementation details directly from the library source:
 
-- `src/index.ts` — `defineStoreRepository`, the `read`/`submit`/`remove` actions, getters, and provider components.
-- `src/types.ts` — store, action, and option type definitions.
-- `src/utilities.ts` — hashing, normalization, and cleanup helpers.
-- `src/constants.ts` — default values (persistence, debounce, cleanup interval).
+- `src/index.ts`: `defineStoreRepository`, the `read`/`submit`/`remove` actions, getters, and provider components.
+- `src/types.ts`: store, action, and option type definitions.
+- `src/utilities.ts`: hashing, normalization, and cleanup helpers.
+- `src/constants.ts`: default values (persistence, debounce, cleanup interval).
 
 ## Documentation
 
 - [Volver Query Repository](https://github.com/volverjs/query-vue)
 - [Skill Specification](./SKILL.md)
-- [@volverjs/data](https://github.com/volverjs/data) — the underlying repository library
+- [@volverjs/data](https://github.com/volverjs/data): the underlying repository library
 
 ## License
 

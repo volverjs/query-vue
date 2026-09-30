@@ -7,31 +7,31 @@ normalized item cache. By default it executes immediately.
 const result = read(params, options)
 ```
 
-- `params` — a params map **or a `Ref` to one**. Passing a ref enables reactive patterns
+- `params`: a params map **or a `Ref` to one**. Passing a ref enables reactive patterns
   (`autoExecute`, `executeWhen`). Merged with the store's `defaultParameters`.
 
 ## Return value
 
-All fields are reactive (`computed`/`ref`) — bind them directly; don't read `.value` in templates.
+All fields are reactive (`computed`/`ref`): bind them directly; don't read `.value` in templates.
 
 ```ts
 const {
-  data,        // TResponse[] — always an array (empty when nothing)
-  item,        // TResponse | undefined — data[0], convenient for single-record reads
+  data,        // TResponse[]: always an array (empty when nothing)
+  item,        // TResponse | undefined: data[0], convenient for single-record reads
   isLoading,   // boolean
   isSuccess,   // boolean
   isError,     // boolean
-  error,       // Error | undefined — first error
+  error,       // Error | undefined: first error
   errors,      // Error[]
-  metadata,    // ParamMap | undefined — repository-provided metadata (pagination, etc.)
+  metadata,    // ParamMap | undefined: repository-provided metadata (pagination, etc.)
   status,      // StoreRepositoryStatus: 'idle' | 'loading' | 'success' | 'error'
   query,        // the tracked query object
 
   execute,     // (newParamsOrForce?, newRepositoryOptionsOrForce?) => Promise<...>
-  reset,       // () => void — reset this query
-  stop,        // () => void — stop autoExecute watchers
-  cleanup,     // () => void — disable the query (called automatically on unmount)
-  ignoreUpdates, // (cb) => void — run cb without triggering autoExecute watchers
+  reset,       // () => void, resets this query
+  stop,        // () => void, stops the autoExecute watchers
+  cleanup,     // () => void, disables the query (called automatically on unmount)
+  ignoreUpdates, // (cb) => void, runs cb without triggering autoExecute watchers
 } = read(params, options)
 ```
 
@@ -161,12 +161,12 @@ const user = getItemByKey(selectedId) // selectedId can be a ref
 
 ## ReadProvider
 
-A component that runs `read()` and exposes the result through a scoped slot — useful instead of
+A component that runs `read()` and exposes the result through a scoped slot, useful instead of
 lifting state. It **executes immediately** (unlike Submit/Remove providers).
 
 Props:
-- `params` — the params map.
-- `options` — a `read()` options object.
+- `params`: the params map.
+- `options`: a `read()` options object.
 
 The default slot receives the same fields `read()` returns (`isLoading`, `isError`, `data`,
 `item`, `error`, `execute`, `reset`, …).
