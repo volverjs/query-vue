@@ -81,28 +81,35 @@ export function toAwaitable<TState extends object, TSnapshot>(
 
 /**
  * The intentional thenable behind `toAwaitable()`. `then` is an own arrow
- * function field, not a prototype method: it needs no `this`, so it survives
- * destructuring, spreading and reactive proxies.
+ * function field, not a prototype method, so it survives destructuring,
+ * spreading and reactive proxies. Its state lives in `#` fields, which stay
+ * out of the object the action returns.
  */
 class ActionAwaitable<TSnapshot> implements PromiseLike<TSnapshot> {
-    readonly then: PromiseLike<TSnapshot>['then']
+    readonly #execution: Promise<TSnapshot> | undefined
+    readonly #snapshot: () => TSnapshot
+    readonly #release: (() => void) | undefined
+    #released = false
 
     constructor(
         execution: Promise<TSnapshot> | undefined,
         snapshot: () => TSnapshot,
         release?: () => void,
     ) {
-        let released = false
-        this.then = (onFulfilled, onRejected) => {
-            if (!execution) {
-                return Promise.resolve(snapshot()).then(onFulfilled, onRejected)
-            }
-            if (release && !released) {
-                released = true
-                execution.then(release, release)
-            }
-            return execution.then(onFulfilled, onRejected)
+        this.#execution = execution
+        this.#snapshot = snapshot
+        this.#release = release
+    }
+
+    readonly then: PromiseLike<TSnapshot>['then'] = (onFulfilled, onRejected) => {
+        if (!this.#execution) {
+            return Promise.resolve(this.#snapshot()).then(onFulfilled, onRejected)
         }
+        if (this.#release && !this.#released) {
+            this.#released = true
+            this.#execution.then(this.#release, this.#release)
+        }
+        return this.#execution.then(onFulfilled, onRejected)
     }
 }
 
