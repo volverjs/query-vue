@@ -135,7 +135,7 @@ describe('error handling', () => {
         expect(isError).toBe(true)
         expect(error?.message).toContain('id')
         expect(result.isError.value).toBe(true)
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
     })
 
     it('submit resolves with the error when the request cannot be built', async () => {
@@ -149,7 +149,7 @@ describe('error handling', () => {
         expect(isError).toBe(true)
         expect(error?.message).toContain('id')
         expect(result.isError.value).toBe(true)
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
     })
 
     it('remove resolves with the error when the request cannot be built', async () => {
@@ -163,6 +163,6 @@ describe('error handling', () => {
         expect(isError).toBe(true)
         expect(error?.message).toContain('id')
         expect(result.isError.value).toBe(true)
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
     })
 })

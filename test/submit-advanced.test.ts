@@ -130,13 +130,13 @@ describe('submit advanced', () => {
         expect(before.isError).toBe(false)
         expect(before.aborted).toBe(false)
         expect(before.data).toEqual([])
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
         fetchMock.mockResponseOnce(JSON.stringify([{ id: '1', name: 'a' }]))
         await result.execute()
         const after = await result
         expect(after.isSuccess).toBe(true)
         expect(after.item?.id).toBe('1')
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 
     it('awaiting an aborted submit resolves with aborted true', async () => {
@@ -177,7 +177,7 @@ describe('submit advanced', () => {
         expect(returned).toBe(direct)
         expect(direct.item?.id).toBe('1')
         expect('then' in direct).toBe(false)
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
         expect(foreignThenables(store)).toEqual([])
     })
 
@@ -203,6 +203,6 @@ describe('submit advanced', () => {
         expect(provider.exists()).toBe(true)
         expect(typeof (provider.vm as any).execute).toBe('function')
         expect((provider.vm as any).then).toBeUndefined()
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
     })
 })

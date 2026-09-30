@@ -435,7 +435,7 @@ describe('read', () => {
         expect(item?.id).toBe('12345')
         // the reactive fields keep working next to the awaited snapshot
         expect(result.item.value?.id).toBe('12345')
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 
     it('awaits a failed read and resolves with isError', async () => {

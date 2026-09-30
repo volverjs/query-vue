@@ -92,10 +92,10 @@ describe('remove', () => {
         expect(isError).toBe(false)
         expect(error).toBeUndefined()
         expect(aborted).toBe(false)
-        expect(getItemByKey('12345').value).toBe(undefined)
+        expect(getItemByKey('12345').value).toBeUndefined()
         const request = fetchMock.mock.calls[1][0] as Request
         expect(request.method).toEqual('DELETE')
-        expect(fetchMock.mock.calls.length).toBe(2)
+        expect(fetchMock.mock.calls).toHaveLength(2)
     })
 
     it('awaits a failed removal and resolves with isError', async () => {
@@ -112,7 +112,7 @@ describe('remove', () => {
         expect(isSuccess).toBe(false)
         expect(isError).toBe(true)
         expect(error).toBeInstanceOf(Error)
-        expect(errors.length).toBe(1)
+        expect(errors).toHaveLength(1)
         expect(aborted).toBe(false)
     })
 })

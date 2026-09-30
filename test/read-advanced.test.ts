@@ -88,12 +88,12 @@ describe('read advanced', () => {
         expect(before.isError).toBe(false)
         expect(before.aborted).toBe(false)
         expect(before.data).toEqual([])
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
         fetchMock.mockResponseOnce(JSON.stringify([{ id: '1' }]))
         await result.execute()
         const after = await result
         expect(after.item?.id).toBe('1')
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 
     it('awaiting while executeWhen is false resolves at once without a request', async () => {
@@ -106,7 +106,7 @@ describe('read advanced', () => {
         const { isSuccess, aborted } = await read({ id: '1' }, { executeWhen })
         expect(isSuccess).toBe(false)
         expect(aborted).toBe(false)
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
     })
 
     it('awaiting with autoExecute settles on the first execution only', async () => {
@@ -129,7 +129,7 @@ describe('read advanced', () => {
         expect(result.item.value?.id).toBe('2')
         // the awaitable is the first execution: it does not follow the watcher
         expect(await result).toBe(first)
-        expect(fetchMock.mock.calls.length).toBe(2)
+        expect(fetchMock.mock.calls).toHaveLength(2)
         scope.stop()
     })
 
@@ -167,7 +167,7 @@ describe('read advanced', () => {
         expect(secondSnapshot.error).toBeInstanceOf(Error)
         expect(second.error.value).toBe(first.error.value)
         expect(first.error.value).toBeInstanceOf(Error)
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 
     it('awaiting a read that joins an aborted request resolves with aborted true', async () => {
@@ -207,7 +207,7 @@ describe('read advanced', () => {
         expect(returned).toBe(direct)
         expect(direct.item?.id).toBe('1')
         expect('then' in direct).toBe(false)
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
         expect(foreignThenables(store)).toEqual([])
     })
 
@@ -253,6 +253,6 @@ describe('read advanced', () => {
         expect(provider.exists()).toBe(true)
         expect(typeof (provider.vm as any).execute).toBe('function')
         expect((provider.vm as any).then).toBeUndefined()
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 })

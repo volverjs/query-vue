@@ -74,13 +74,13 @@ describe('remove advanced', () => {
         expect(before.isSuccess).toBe(false)
         expect(before.isError).toBe(false)
         expect(before.aborted).toBe(false)
-        expect(fetchMock.mock.calls.length).toBe(0)
+        expect(fetchMock.mock.calls).toHaveLength(0)
         // awaiting reflects later executions only through the current snapshot
         fetchMock.mockResponseOnce('', { status: 204 })
         await result.execute()
         const after = await result
         expect(after.isSuccess).toBe(true)
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 
     it('awaiting an aborted removal resolves with aborted true', async () => {
@@ -121,7 +121,7 @@ describe('remove advanced', () => {
         expect(returned).toBe(direct)
         expect(direct.isSuccess).toBe(true)
         expect('then' in direct).toBe(false)
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
         expect(foreignThenables(store)).toEqual([])
     })
 
@@ -159,6 +159,6 @@ describe('remove advanced', () => {
         expect(provider.exists()).toBe(true)
         expect(typeof (provider.vm as any).execute).toBe('function')
         expect((provider.vm as any).then).toBeUndefined()
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 })

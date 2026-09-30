@@ -218,7 +218,7 @@ describe('submit', () => {
         expect(getItemByKey('12345').value?.id).toBe('12345')
         const request = fetchMock.mock.calls[0][0] as Request
         expect(request.method).toEqual('POST')
-        expect(fetchMock.mock.calls.length).toBe(1)
+        expect(fetchMock.mock.calls).toHaveLength(1)
     })
 
     it('awaits a failed submit and resolves with isError', async () => {
