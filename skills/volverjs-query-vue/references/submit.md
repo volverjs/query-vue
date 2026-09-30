@@ -7,9 +7,9 @@ or an update is **inferred from the payload's key property**, or you can force i
 const result = submit(payload, params, options)
 ```
 
-- `payload` — the item, an array of items, or a **`Ref`** to either. A ref enables `autoExecute`
+- `payload`: the item, an array of items, or a **`Ref`** to either. A ref enables `autoExecute`
   and two-way sync.
-- `params` — params map (or ref). Merged with the store's `defaultParameters`. If the payload
+- `params`: params map (or ref). Merged with the store's `defaultParameters`. If the payload
   carries a key and the params don't already include it, the key is added to params automatically
   (so the URL targets the right record on update).
 
@@ -26,8 +26,8 @@ Same reactive shape as `read()`:
 
 ```ts
 const {
-  data,        // TResponse[] — the server response (always an array)
-  item,        // TResponse | undefined — data[0]
+  data,        // TResponse[]: the server response (always an array)
+  item,        // TResponse | undefined: data[0]
   isLoading, isSuccess, isError,
   error, errors,
   metadata,
@@ -46,6 +46,30 @@ execute({ username: 'grace' })         // submit new data
 execute(newData, { team: 'x' })        // new data + params
 execute(newData, params, { signal })   // + per-call repositoryOptions
 ```
+
+### Awaiting (since 2.1.0)
+
+The returned object is awaitable. `await submit(...)` waits for the POST/PUT the call started and
+resolves to the plain snapshot `execute()` resolves to: booleans and values, not refs.
+
+```ts
+const { isSuccess, isError, error, errors, data, item, metadata, query, aborted } = await submit({ username: 'ada' })
+if (isSuccess) router.push(`/users/${item?.id}`)
+```
+
+- Never rejects: a failed request (also one that cannot be built, e.g. a missing path param)
+  resolves with `isError: true` and `error`; an aborted one (replaced by an `execute()` with other
+  params) resolves with `aborted: true`.
+- Settles on the call's own execution only. With `autoExecute`, later re-submits don't change the
+  result; `await execute()` to wait for one of them.
+- If the call starts nothing (`immediate: false`, or `executeWhen` false at call time), awaiting
+  resolves at once to the current snapshot and sends no request.
+- Awaiting never starts a request: `Promise.resolve()`, `Promise.all()` or returning the object
+  from an async function do not submit twice.
+- With no owning effect scope (an event handler), awaiting also releases the query once it
+  settles, unless `keepAlive: true`.
+- On 2.0.x the object is not awaitable: `await submit(...)` returns it at once and `isSuccess` is
+  a `ComputedRef`, always truthy. There, use `immediate: false` and `await execute()`.
 
 ## Payload sync (two-way)
 
@@ -68,7 +92,7 @@ submit(payload, params, {
   /* Name the query. Default: generated (each call is independent). */
   name: undefined,
 
-  /* Keep the query alive across unmount. Default false. */
+  /* Keep the query alive across unmount (and, with no owner, after an awaited execution). Default false. */
   keepAlive: false,
 
   /* Submit as soon as submit() is called. Default true. */
@@ -145,13 +169,13 @@ submit([{ username: 'a' }, { username: 'b' }]) // create (no keys) -> POST with 
 ## SubmitProvider
 
 A component that runs `submit()` via a scoped slot, with `v-model` for the payload.
-It does **not** execute immediately (default `options.immediate` is `false`) — trigger it with the
+It does **not** execute immediately (default `options.immediate` is `false`): trigger it with the
 slot's `execute()`.
 
 Props:
-- `v-model` (`modelValue`) — the payload; kept in sync with the server response.
-- `params` — params map.
-- `options` — a `submit()` options object.
+- `v-model` (`modelValue`): the payload; kept in sync with the server response.
+- `params`: params map.
+- `options`: a `submit()` options object.
 
 ```vue
 <script setup lang="ts">

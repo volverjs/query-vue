@@ -1,6 +1,6 @@
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
 import { flushPromises } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 import { nextTick, ref } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import SubmitProvider from './components/SubmitProvider.vue'
@@ -194,5 +194,48 @@ describe('submit', () => {
         const putRequest = fetchMock.mock.calls[1][0] as Request
         expect(putRequest.url).toEqual('https://myapi.com/v1/12345')
         expect(putRequest.method).toEqual('PUT')
+    })
+
+    it('awaits the submit and resolves to plain values', async () => {
+        fetchMock.mockResponseOnce(
+            JSON.stringify([{ id: '12345', name: 'test' }]),
+        )
+        const useStoreReposotory = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-await',
+        )
+        const { submit, getItemByKey } = useStoreReposotory()
+        const result = submit({ name: 'test' })
+        const { isSuccess, isError, data, item, aborted } = await result
+        expectTypeOf(isSuccess).toEqualTypeOf<boolean>()
+        expectTypeOf(item).toEqualTypeOf<Entity | undefined>()
+        expect(result.isLoading.value).toBe(false)
+        expect(isSuccess).toBe(true)
+        expect(isError).toBe(false)
+        expect(aborted).toBe(false)
+        expect(data[0].id).toBe('12345')
+        expect(item?.id).toBe('12345')
+        expect(getItemByKey('12345').value?.id).toBe('12345')
+        const request = fetchMock.mock.calls[0][0] as Request
+        expect(request.method).toEqual('POST')
+        expect(fetchMock.mock.calls).toHaveLength(1)
+    })
+
+    it('awaits a failed submit and resolves with isError', async () => {
+        // 400 is not retried by ky, so a single mocked response is enough
+        fetchMock.mockResponseOnce('Bad Request', { status: 400 })
+        const useStoreReposotory = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-await-error',
+        )
+        const { submit } = useStoreReposotory()
+        const { isSuccess, isError, error, item, aborted } = await submit({
+            name: 'test',
+        })
+        expect(isSuccess).toBe(false)
+        expect(isError).toBe(true)
+        expect(error).toBeInstanceOf(Error)
+        expect(item).toBeUndefined()
+        expect(aborted).toBe(false)
     })
 })

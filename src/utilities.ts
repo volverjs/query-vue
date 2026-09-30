@@ -55,35 +55,70 @@ export function initStatus() {
     return { status, isLoading, isError, isSuccess, error }
 }
 
-export function initAutoExecuteReadHandlers<TResponse>(
+/**
+ * Makes the value returned by an action awaitable, like VueUse's `useFetch`.
+ * Awaiting it settles on the execution started by the action call itself and
+ * resolves to the plain snapshot that `execute()` resolves to. When the call
+ * started no execution (`immediate: false`, or `executeWhen` false at call
+ * time), it resolves at once to the current snapshot.
+ * `then` never starts a request, so `Promise.resolve()` or a `return` from an
+ * async function can call it any number of times and the action still runs once.
+ * `release`, passed when no effect scope owns the action (an event handler, a
+ * plain async function), runs once the awaited execution settles: awaiting
+ * hands the result over as a plain snapshot and nothing else would clean up.
+ * Only `then`, never `catch` or `finally`: Vue treats a value with both `then`
+ * and `catch` as a promise, so `setup() { return read() }` would become an
+ * async setup and `@click="remove(...)"` handlers would get a rejection handler.
+ */
+export function toAwaitable<TState extends object, TSnapshot>(
+    state: TState,
+    execution: Promise<TSnapshot> | undefined,
+    snapshot: () => TSnapshot,
+    release?: () => void,
+): TState & PromiseLike<TSnapshot> {
+    return Object.assign(new ActionAwaitable(execution, snapshot, release), state)
+}
+
+/**
+ * The intentional thenable behind `toAwaitable()`. `then` is an own arrow
+ * function field, not a prototype method, so it survives destructuring,
+ * spreading and reactive proxies. Its state lives in `#` fields, which stay
+ * out of the object the action returns.
+ */
+class ActionAwaitable<TSnapshot> implements PromiseLike<TSnapshot> {
+    readonly #execution: Promise<TSnapshot> | undefined
+    readonly #snapshot: () => TSnapshot
+    readonly #release: (() => void) | undefined
+    #released = false
+
+    constructor(
+        execution: Promise<TSnapshot> | undefined,
+        snapshot: () => TSnapshot,
+        release?: () => void,
+    ) {
+        this.#execution = execution
+        this.#snapshot = snapshot
+        this.#release = release
+    }
+
+    readonly then: PromiseLike<TSnapshot>['then'] = (onFulfilled, onRejected) => {
+        if (!this.#execution) {
+            return Promise.resolve(this.#snapshot()).then(onFulfilled, onRejected)
+        }
+        if (this.#release && !this.#released) {
+            this.#released = true
+            this.#execution.then(this.#release, this.#release)
+        }
+        return this.#execution.then(onFulfilled, onRejected)
+    }
+}
+
+export function initAutoExecuteReadHandlers<TResult>(
     params: Ref<ParamMap> | ParamMap,
     execute: (
         newValue?: ParamMap,
         oldValue?: ParamMap,
-    ) => Promise<{
-        query:
-            | {
-                isLoading: boolean
-                isError: boolean
-                isSuccess: boolean
-                errors: Error[]
-                metadata: ParamMap
-                data: TResponse[]
-                timestamp: number
-                params: ParamMap
-                storeHashes: Set<string>
-                enabled: boolean
-            }
-            | undefined
-        data: TResponse[]
-        item: TResponse | undefined
-        metadata: ParamMap | undefined
-        errors: Error[]
-        error: Error | undefined
-        isSuccess: boolean
-        isError: boolean
-        aborted: boolean
-    }>,
+    ) => Promise<TResult>,
     options: StoreRepositoryReadOptions = {},
 ) {
     const {
@@ -104,6 +139,8 @@ export function initAutoExecuteReadHandlers<TResponse>(
     const normalizedExecuteWhen = isRef(executeWhen)
         ? executeWhen
         : computed(() => executeWhen(unref(params) as ParamMap))
+    // the handlers below do not await: `execute()` never rejects, a failure
+    // lands in the query state
     // execute on params  change
     if (autoExecute) {
         const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates }
@@ -111,7 +148,7 @@ export function initAutoExecuteReadHandlers<TResponse>(
                 [normalizedParams, normalizedExecuteWhen],
                 ([newParams, newWhen]) => {
                     if (newWhen) {
-                        execute(newParams)
+                        void execute(newParams)
                     }
                 },
                 {
@@ -128,7 +165,7 @@ export function initAutoExecuteReadHandlers<TResponse>(
                 normalizedExecuteWhen,
                 (newWhen, oldWhen) => {
                     if (newWhen && !oldWhen) {
-                        execute(unref(params) as ParamMap)
+                        void execute(unref(params) as ParamMap)
                     }
                 },
                 {
@@ -140,16 +177,17 @@ export function initAutoExecuteReadHandlers<TResponse>(
         stopHandler = watchStopHandler
     }
 
-    if (immediate && normalizedExecuteWhen.value) {
-        execute(unref(params) as ParamMap)
-    }
+    // the call's own execution: awaiting the action settles on it
+    const execution = immediate && normalizedExecuteWhen.value
+        ? execute(unref(params) as ParamMap)
+        : undefined
 
     // execute on window focus
     if (autoExecuteOnWindowFocus) {
         const focused = useWindowFocus()
         executeOnFocusStopHandler = watch(focused, (isFocused) => {
             if (isFocused && normalizedExecuteWhen.value) {
-                execute()
+                void execute()
             }
         })
     }
@@ -158,7 +196,7 @@ export function initAutoExecuteReadHandlers<TResponse>(
         const visibility = useDocumentVisibility()
         documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
             if (visibilityState === 'visible' && normalizedExecuteWhen.value) {
-                execute()
+                void execute()
             }
         })
     }
@@ -167,39 +205,16 @@ export function initAutoExecuteReadHandlers<TResponse>(
         executeOnFocusStopHandler?.()
         documentVisibilityStopHandler?.()
     }
-    return { stop, ignoreUpdates }
+    return { stop, ignoreUpdates, execution }
 }
 
-export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
+export function initAutoExecuteSubmitHandlers<TRequest, TResult>(
     payload: Ref<TRequest | TRequest[] | undefined> | TRequest | TRequest[] | undefined,
     params: Ref<ParamMap> | ParamMap,
     resubmit: (
         item?: TRequest | TRequest[],
         params?: ParamMap,
-    ) => Promise<{
-        query:
-            | {
-                isLoading: boolean
-                isError: boolean
-                isSuccess: boolean
-                errors: Error[]
-                metadata: ParamMap
-                data: TResponse[]
-                timestamp: number
-                params: ParamMap
-                storeHashes: Set<string>
-                enabled: boolean
-            }
-            | undefined
-        data: TResponse[]
-        item: TResponse | undefined
-        metadata: ParamMap | undefined
-        errors: Error[]
-        error: Error | undefined
-        isSuccess: boolean
-        isError: boolean
-        aborted: boolean
-    }>,
+    ) => Promise<TResult>,
     options: StoreRepositorySubmitOptions<TRequest> = {},
 ) {
     const {
@@ -221,6 +236,8 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
     const normalizedExecuteWhen = isRef(executeWhen)
         ? executeWhen
         : computed(() => executeWhen(unref(payload), unref(params) as ParamMap))
+    // the handlers below do not await: `execute()` never rejects, a failure
+    // lands in the query state
     // auto-submit on item or params change
     if (autoExecute) {
         const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates }
@@ -228,7 +245,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
                 [normalizedPayload, normalizedParams, normalizedExecuteWhen],
                 ([newPayload, newParams, newWhen], _) => {
                     if (newWhen) {
-                        resubmit(newPayload, newParams)
+                        void resubmit(newPayload, newParams)
                     }
                 },
                 {
@@ -245,7 +262,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
                 normalizedExecuteWhen,
                 (newWhen, oldWhen) => {
                     if (newWhen && !oldWhen) {
-                        resubmit(unref(payload), unref(params) as ParamMap)
+                        void resubmit(unref(payload), unref(params) as ParamMap)
                     }
                 },
                 {
@@ -257,16 +274,17 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
         stopHandler = watchStopHandler
     }
 
-    if (immediate && normalizedExecuteWhen.value) {
-        resubmit(unref(payload), unref(params) as ParamMap)
-    }
+    // the call's own execution: awaiting the action settles on it
+    const execution = immediate && normalizedExecuteWhen.value
+        ? resubmit(unref(payload), unref(params) as ParamMap)
+        : undefined
 
     // execute on window focus
     if (autoExecuteOnWindowFocus) {
         const focused = useWindowFocus()
         executeOnFocusStopHandler = watch(focused, (isFocused) => {
             if (isFocused && normalizedExecuteWhen.value) {
-                resubmit()
+                void resubmit()
             }
         })
     }
@@ -275,7 +293,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
         const visibility = useDocumentVisibility()
         documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
             if (visibilityState === 'visible' && normalizedExecuteWhen.value) {
-                resubmit()
+                void resubmit()
             }
         })
     }
@@ -284,7 +302,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResponse>(
         executeOnFocusStopHandler?.()
         documentVisibilityStopHandler?.()
     }
-    return { stop, ignoreUpdates }
+    return { stop, ignoreUpdates, execution }
 }
 
 export function getRandomValues() {
