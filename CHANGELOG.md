@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Code that awaited an action, or returned it from an async function, and then used its refs now gets plain values: `const { data } = await read()` followed by `data.value` is now a type error, and the same destructuring after a top-level `await` in `<script setup>` renders once and no longer updates. Drop the `await`, or keep the returned object and await it on its own (`const users = read(); await users`);
-- actions are cleaned up when the effect scope that created them is disposed, instead of on component unmount only: components behave as before, and `effectScope()` and Pinia setup stores are now covered too.
+- actions are cleaned up when the effect scope that created them is disposed, instead of on component unmount only: components behave as before, and `effectScope()` and Pinia setup stores are now covered too;
+- dependencies update: minor/patch updates to `@types/node`, `eslint`, `unplugin-dts`, `vite` and `vitest`; `packageManager` bumped to `pnpm@12.8.1`.
 
 ### Fix
 
