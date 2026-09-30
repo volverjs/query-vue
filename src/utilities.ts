@@ -76,18 +76,34 @@ export function toAwaitable<TState extends object, TSnapshot>(
     snapshot: () => TSnapshot,
     release?: () => void,
 ): TState & PromiseLike<TSnapshot> {
-    let released = false
-    const then: PromiseLike<TSnapshot>['then'] = (onFulfilled, onRejected) => {
-        if (!execution) {
-            return Promise.resolve(snapshot()).then(onFulfilled, onRejected)
+    return Object.assign(new ActionAwaitable(execution, snapshot, release), state)
+}
+
+/**
+ * The intentional thenable behind `toAwaitable()`. `then` is an own arrow
+ * function field, not a prototype method: it needs no `this`, so it survives
+ * destructuring, spreading and reactive proxies.
+ */
+class ActionAwaitable<TSnapshot> implements PromiseLike<TSnapshot> {
+    readonly then: PromiseLike<TSnapshot>['then']
+
+    constructor(
+        execution: Promise<TSnapshot> | undefined,
+        snapshot: () => TSnapshot,
+        release?: () => void,
+    ) {
+        let released = false
+        this.then = (onFulfilled, onRejected) => {
+            if (!execution) {
+                return Promise.resolve(snapshot()).then(onFulfilled, onRejected)
+            }
+            if (release && !released) {
+                released = true
+                execution.then(release, release)
+            }
+            return execution.then(onFulfilled, onRejected)
         }
-        if (release && !released) {
-            released = true
-            execution.then(release, release)
-        }
-        return execution.then(onFulfilled, onRejected)
     }
-    return { ...state, then }
 }
 
 export function initAutoExecuteReadHandlers<TResult>(
