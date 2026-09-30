@@ -139,6 +139,8 @@ export function initAutoExecuteReadHandlers<TResult>(
     const normalizedExecuteWhen = isRef(executeWhen)
         ? executeWhen
         : computed(() => executeWhen(unref(params) as ParamMap))
+    // the handlers below do not await: `execute()` never rejects, a failure
+    // lands in the query state
     // execute on params  change
     if (autoExecute) {
         const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates }
@@ -146,7 +148,7 @@ export function initAutoExecuteReadHandlers<TResult>(
                 [normalizedParams, normalizedExecuteWhen],
                 ([newParams, newWhen]) => {
                     if (newWhen) {
-                        execute(newParams)
+                        void execute(newParams)
                     }
                 },
                 {
@@ -163,7 +165,7 @@ export function initAutoExecuteReadHandlers<TResult>(
                 normalizedExecuteWhen,
                 (newWhen, oldWhen) => {
                     if (newWhen && !oldWhen) {
-                        execute(unref(params) as ParamMap)
+                        void execute(unref(params) as ParamMap)
                     }
                 },
                 {
@@ -185,7 +187,7 @@ export function initAutoExecuteReadHandlers<TResult>(
         const focused = useWindowFocus()
         executeOnFocusStopHandler = watch(focused, (isFocused) => {
             if (isFocused && normalizedExecuteWhen.value) {
-                execute()
+                void execute()
             }
         })
     }
@@ -194,7 +196,7 @@ export function initAutoExecuteReadHandlers<TResult>(
         const visibility = useDocumentVisibility()
         documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
             if (visibilityState === 'visible' && normalizedExecuteWhen.value) {
-                execute()
+                void execute()
             }
         })
     }
@@ -234,6 +236,8 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResult>(
     const normalizedExecuteWhen = isRef(executeWhen)
         ? executeWhen
         : computed(() => executeWhen(unref(payload), unref(params) as ParamMap))
+    // the handlers below do not await: `execute()` never rejects, a failure
+    // lands in the query state
     // auto-submit on item or params change
     if (autoExecute) {
         const { stop: watchStopHandler, ignoreUpdates: watchIgnoreUpdates }
@@ -241,7 +245,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResult>(
                 [normalizedPayload, normalizedParams, normalizedExecuteWhen],
                 ([newPayload, newParams, newWhen], _) => {
                     if (newWhen) {
-                        resubmit(newPayload, newParams)
+                        void resubmit(newPayload, newParams)
                     }
                 },
                 {
@@ -258,7 +262,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResult>(
                 normalizedExecuteWhen,
                 (newWhen, oldWhen) => {
                     if (newWhen && !oldWhen) {
-                        resubmit(unref(payload), unref(params) as ParamMap)
+                        void resubmit(unref(payload), unref(params) as ParamMap)
                     }
                 },
                 {
@@ -280,7 +284,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResult>(
         const focused = useWindowFocus()
         executeOnFocusStopHandler = watch(focused, (isFocused) => {
             if (isFocused && normalizedExecuteWhen.value) {
-                resubmit()
+                void resubmit()
             }
         })
     }
@@ -289,7 +293,7 @@ export function initAutoExecuteSubmitHandlers<TRequest, TResult>(
         const visibility = useDocumentVisibility()
         documentVisibilityStopHandler = watch(visibility, (visibilityState) => {
             if (visibilityState === 'visible' && normalizedExecuteWhen.value) {
-                resubmit()
+                void resubmit()
             }
         })
     }
