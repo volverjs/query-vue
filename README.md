@@ -193,6 +193,8 @@ const {
 } = read()
 ```
 
+The returned object is also awaitable, see [Await](#await).
+
 ### Parameters
 
 `read()` accepts an optional parameters map.
@@ -385,8 +387,9 @@ const {
          */
         directory: false,
         /*
-         * Keep the query alive when
-         * the component is unmounted (default: false)
+         * Keep the query alive when the component (or the effect scope)
+         * that created it is disposed and, with no owner, after an awaited
+         * execution (default: false)
          */
         keepAlive: false,
         /*
@@ -510,6 +513,8 @@ const {
 } = submit()
 ```
 
+The returned object is also awaitable, see [Await](#await).
+
 ### Options
 
 `submit()` accepts the following options:
@@ -531,8 +536,9 @@ const {
          */
         name: undefined,
         /*
-         * Keep the query alive when
-         * the component is unmounted (default: false)
+         * Keep the query alive when the component (or the effect scope)
+         * that created it is disposed and, with no owner, after an awaited
+         * execution (default: false)
          */
         keepAlive: false,
         /*
@@ -686,6 +692,8 @@ const {
 })
 ```
 
+The returned object is also awaitable, see [Await](#await).
+
 ### Options
 
 `remove()` accepts the following options:
@@ -705,8 +713,9 @@ const {
          */
         name: undefined,
         /*
-         * Keep the query alive when
-         * the component is unmounted (default: false)
+         * Keep the query alive when the component (or the effect scope)
+         * that created it is disposed and, with no owner, after an awaited
+         * execution (default: false)
          */
         keepAlive: false,
         /* Execute the `remove()` action immediately (default: true) */
@@ -719,6 +728,82 @@ const {
     }
 )
 ```
+
+## Await
+
+The object returned by `read()`, `submit()` and `remove()` is awaitable, like the one returned by VueUse's `useFetch`. Awaiting it waits for the execution started by the call and resolves to the same plain snapshot that `execute()` resolves to: booleans and values, not refs.
+
+```ts
+const { remove } = useUsersStore()
+
+async function deleteUser(id: string) {
+    const { isSuccess, error } = await remove({ id })
+    if (isSuccess) {
+        // the DELETE request succeeded
+    }
+    else {
+        // the DELETE request failed, `error` tells why
+        console.error(error)
+    }
+}
+```
+
+The snapshot contains:
+
+```ts
+const {
+    /* Boolean that indicates if the request has succeeded */
+    isSuccess,
+    /* Boolean that indicates if the request has failed */
+    isError,
+    /* Boolean that indicates if the request has been aborted */
+    aborted,
+    /* The first error, if any */
+    error,
+    /* The array of errors */
+    errors,
+    /* The query object */
+    query,
+    /* The metadata object returned by the repository */
+    metadata,
+    /* `read()` and `submit()` only: the data array returned by the repository */
+    data,
+    /* `read()` and `submit()` only: the first item of the `data` array */
+    item,
+} = await read()
+```
+
+Awaiting follows these rules:
+
+- it never rejects: a failed request (also one that cannot be built, for example because of a missing path parameter) resolves with `isError: true` and its `error`, an aborted request (for example one replaced by an `execute()` with other parameters) resolves with `aborted: true`. With `RepositoryHttp` from `@volverjs/data` 2.0.x, a `read()` that fails without an HTTP response (a network error, an invalid JSON body) is reported as aborted, so do not treat `aborted` as a success;
+- it settles on the execution started by the call only: with `autoExecute`, the executions started later by a parameters change do not change the result, await `execute()` to wait for one of them;
+- when the call starts no execution (`immediate: false`, or `executeWhen` false when the action is called), it resolves at once to the current snapshot and sends no request, so `isSuccess` stays `false` until an execution succeeds;
+- awaiting never starts a request, so `Promise.resolve()`, `Promise.all()` or returning the object from an `async` function do not execute the action twice.
+
+The awaited values are plain, they do not update. Keep the returned object to use both the result and the reactive fields:
+
+```ts
+const users = read()
+const { isSuccess } = await users
+// `isSuccess` is a boolean, `users.data` is still a reactive array
+```
+
+Before `2.1.0` awaiting an action returned the object itself at once. If your code awaits an action and then uses its refs (`data.value`, or binds them in the template after a top-level `await` in `<script setup>`), drop the `await` or keep the returned object and await it on its own as above.
+
+To execute an action later and wait for it, create it with `immediate: false` and await `execute()`:
+
+```ts
+const { execute } = remove(undefined, { immediate: false })
+
+async function deleteUser(id: string) {
+    const { isSuccess } = await execute({ id })
+    // ...
+}
+```
+
+The template refs of the provider components are not awaitable. If you expose the object returned by an action with `defineExpose()`, leave `then` out the same way (`const { then, ...exposed } = read()`), otherwise an `async` function that returns the component instance resolves to the snapshot instead.
+
+An action is cleaned up when the effect scope that created it is disposed: the component `setup()` when the component unmounts, but also an `effectScope()` or a Pinia setup store. An action created with no active scope, for example in an event handler as above, has no owner: when it is awaited, its query is released as soon as the awaited execution settles (unless `keepAlive` is `true`), and the next clean up drops it together with the items only that query referenced, so the reactive fields of the returned object go back to their empty values. If you create an action outside a scope and do not await it, call `cleanup()` when you no longer need it.
 
 ## Components
 

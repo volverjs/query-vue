@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-09-30
+
+### Added
+
+- `read()`, `submit()` and `remove()` now return an awaitable object (a `PromiseLike`, like VueUse's `useFetch`): awaiting it waits for the execution started by the call and resolves to the same plain snapshot `execute()` resolves to (`isSuccess`, `isError`, `error`, `aborted`, ...). `const { isSuccess } = await remove({ id })` now does what it reads: before, `await` returned the object at once, before the request ended, and `isSuccess` was a `ComputedRef`, always truthy, so the success branch also ran on failed requests;
+- awaiting never rejects (a failure resolves with `isError: true`, an aborted request with `aborted: true`), settles on the execution started by the call only (the first one with `autoExecute`), resolves at once to the current snapshot when the call starts no execution (`immediate: false`, or `executeWhen` false) and never starts a request itself, so `Promise.resolve()` or a `return` from an async function cannot run the action twice;
+- the reactive fields and `execute()` are unchanged, and the provider components' template refs are not thenable.
+
+### Changed
+
+- Code that awaited an action, or returned it from an async function, and then used its refs now gets plain values: `const { data } = await read()` followed by `data.value` is now a type error, and the same destructuring after a top-level `await` in `<script setup>` renders once and no longer updates. Drop the `await`, or keep the returned object and await it on its own (`const users = read(); await users`);
+- actions are cleaned up when the effect scope that created them is disposed, instead of on component unmount only: components behave as before, and `effectScope()` and Pinia setup stores are now covered too.
+
+### Fix
+
+- An action created outside any effect scope (an event handler, a plain async function) was never cleaned up, so its query, hash and items stayed in the store for ever: awaiting it now releases its query once the awaited execution settles, unless `keepAlive` is `true`;
+- a request that could not be built (for example a `RepositoryHttp` template with a missing path parameter) made `execute()` reject, with an unhandled rejection on the immediate execution, and left the query idle; the query now gets the error and `execute()` resolves with `isError: true`;
+- a `read()` joining an in-flight request with the same params rejected, with an unhandled rejection, when that request failed, and its query never showed the error; it now joins the query and resolves with the error state, keeps the shared error, and resolves with `aborted: true` when the shared request is aborted.
+
 ## [2.0.8] - 2026-09-17
 
 ### Changed

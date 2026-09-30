@@ -10,6 +10,8 @@ const httpClient = new HttpClient({
 })
 type Entity = { id?: string, name?: string }
 const repositoryHttp = new RepositoryHttp<Entity>(httpClient, ':id?')
+// a required path parameter: building the URL throws when `id` is missing
+const repositoryHttpRequiredId = new RepositoryHttp<Entity>(httpClient, ':id')
 
 describe('error handling', () => {
     setupStoreTest()
@@ -120,5 +122,47 @@ describe('error handling', () => {
         expect(isError.value).toBe(true)
         expect(isSuccess.value).toBe(false)
         expect(error.value).toBeInstanceOf(Error)
+    })
+
+    it('read resolves with the error when the request cannot be built', async () => {
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttpRequiredId,
+            'error-read-not-built',
+        )
+        const { read } = useStore()
+        const result = read({})
+        const { isError, error } = await result
+        expect(isError).toBe(true)
+        expect(error?.message).toContain('id')
+        expect(result.isError.value).toBe(true)
+        expect(fetchMock.mock.calls).toHaveLength(0)
+    })
+
+    it('submit resolves with the error when the request cannot be built', async () => {
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttpRequiredId,
+            'error-submit-not-built',
+        )
+        const { submit } = useStore()
+        const result = submit({ name: 'test' })
+        const { isError, error } = await result
+        expect(isError).toBe(true)
+        expect(error?.message).toContain('id')
+        expect(result.isError.value).toBe(true)
+        expect(fetchMock.mock.calls).toHaveLength(0)
+    })
+
+    it('remove resolves with the error when the request cannot be built', async () => {
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttpRequiredId,
+            'error-remove-not-built',
+        )
+        const { remove } = useStore()
+        const result = remove({})
+        const { isError, error } = await result
+        expect(isError).toBe(true)
+        expect(error?.message).toContain('id')
+        expect(result.isError.value).toBe(true)
+        expect(fetchMock.mock.calls).toHaveLength(0)
     })
 })

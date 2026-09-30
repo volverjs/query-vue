@@ -12,7 +12,7 @@ import type {
     StoreRepositorySubmitOptions,
 } from './types'
 import { Hash } from '@volverjs/data/hash'
-import { tryOnUnmounted, useIdle } from '@vueuse/core'
+import { tryOnScopeDispose, useIdle } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import {
     computed,
@@ -31,6 +31,7 @@ import {
     getRandomValues,
     initAutoExecuteReadHandlers,
     initAutoExecuteSubmitHandlers,
+    toAwaitable,
 } from './utilities'
 
 export function defineStoreRepository<TRequest, TResponse = TRequest>(repository: Repository<TRequest, TResponse> | RepositoryHttp<TRequest, TResponse>, name: string, options: StoreRepositoryOptions<TResponse> = {}) {
@@ -425,6 +426,29 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 return StoreRepositoryStatus.idle
             })
 
+        /**
+         * Creates a repository request. A request that cannot be built (for
+         * example a missing path parameter) fails like a sent one: the query
+         * gets the error and `execute()` resolves instead of rejecting.
+         */
+        const _createRequest = <TRequestReturn>(
+            hashKey: string,
+            hash: Parameters<typeof _setHash>[1],
+            create: () => TRequestReturn,
+        ) => {
+            try {
+                return create()
+            }
+            catch (error) {
+                _setHash(hashKey, {
+                    ...hash,
+                    status: StoreRepositoryStatus.error,
+                    error: error as Error,
+                })
+                return undefined
+            }
+        }
+
         const read = (
             params: Ref<ParamMap> | ParamMap = {},
             {
@@ -511,14 +535,24 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         || (storeHash.status === StoreRepositoryStatus.success
                             && !forceExecute))
                 ) {
+                    let aborted = false
                     if (storeHash.promise) {
-                        await storeHash.promise
+                        try {
+                            const response = await storeHash.promise as { aborted?: boolean } | undefined
+                            aborted = response?.aborted === true
+                        }
+                        catch {
+                            // the execution that owns the request stores the error
+                        }
                     }
                     _setHash(hashKey, {
                         queryName,
                         group: options?.group,
+                        // `_setHash` clears a missing error, keep the owner's
+                        // one (read again: the hash may have been replaced)
+                        error: storeHashes.value.get(hashKey)?.error,
                     })
-                    return executeReturn()
+                    return executeReturn(aborted)
                 }
                 // abort old request
                 if (!options?.group) {
@@ -536,10 +570,19 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 // create new request
                 const repositoryReadOptions
                     = newRepositoryOptions ?? unref(repositoryOptions)
-                const { responsePromise, abort } = repository.read(newParams, {
+                const request = _createRequest(hashKey, {
+                    queryName,
+                    params: newParams,
+                    directory: options?.directory,
+                    group: options?.group,
+                }, () => repository.read(newParams, {
                     key: hashKey,
                     ...repositoryReadOptions,
-                })
+                }))
+                if (!request) {
+                    return executeReturn()
+                }
+                const { responsePromise, abort } = request
                 _setHash(hashKey, {
                     queryName,
                     params: newParams,
@@ -593,7 +636,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }
                 return executeReturn()
             }
-            const { stop, ignoreUpdates } = initAutoExecuteReadHandlers<TResponse>(
+            const { stop, ignoreUpdates, execution } = initAutoExecuteReadHandlers(
                 params,
                 execute,
                 {
@@ -608,10 +651,12 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     _disableQuery(queryName)
                 }
             }
-            tryOnUnmounted(() => {
+            // cleaned up when the owning effect scope (a component too) is disposed,
+            // or, with no owner, once an awaited execution settles
+            const owned = tryOnScopeDispose(() => {
                 cleanup()
             })
-            return {
+            return toAwaitable({
                 query: storeQuery,
                 status: _queryStatus(storeQuery),
                 isLoading: computed(() => storeQuery.value?.isLoading ?? false),
@@ -627,7 +672,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 ignoreUpdates,
                 cleanup,
                 reset,
-            }
+            }, execution, executeReturn, owned ? undefined : cleanup)
         }
 
         const ReadProvider = markRaw(
@@ -649,7 +694,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 },
                 setup(props, { slots, expose }) {
                     const { params, options } = toRefs(props)
-                    const toExpose = read(params, options.value)
+                    // not thenable: an async function returning the component
+                    // instance would resolve to the snapshot instead
+                    const { then: _then, ...toExpose } = read(params, options.value)
                     expose(toExpose)
                     onBeforeUnmount(() => {
                         toExpose.cleanup()
@@ -762,18 +809,25 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 // create new request
                 const repositorySubmitOptions
                     = newRepositoryOptions ?? unref(repositoryOptions)
-                const { responsePromise, abort }
-                    = action === StoreRepositoryAction.update
-                        ? repository.update(
-                                newData,
-                                newParams,
-                                repositorySubmitOptions,
-                            )
-                        : repository.create(
-                                newData,
-                                newParams,
-                                repositorySubmitOptions,
-                            )
+                const request = _createRequest(hashKey, {
+                    queryName,
+                    params: newParams,
+                    action,
+                }, () => action === StoreRepositoryAction.update
+                    ? repository.update(
+                            newData,
+                            newParams,
+                            repositorySubmitOptions,
+                        )
+                    : repository.create(
+                            newData,
+                            newParams,
+                            repositorySubmitOptions,
+                        ))
+                if (!request) {
+                    return executeReturn()
+                }
+                const { responsePromise, abort } = request
 
                 _setHash(hashKey, {
                     queryName,
@@ -834,7 +888,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }
                 return executeReturn()
             }
-            const { stop, ignoreUpdates } = initAutoExecuteSubmitHandlers<TRequest, TResponse>(
+            const { stop, ignoreUpdates, execution } = initAutoExecuteSubmitHandlers(
                 payload,
                 params,
                 execute,
@@ -850,10 +904,12 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     _disableQuery(queryName)
                 }
             }
-            tryOnUnmounted(() => {
+            // cleaned up when the owning effect scope (a component too) is disposed,
+            // or, with no owner, once an awaited execution settles
+            const owned = tryOnScopeDispose(() => {
                 cleanup()
             })
-            return {
+            return toAwaitable({
                 query: storeQuery,
                 status: _queryStatus(storeQuery),
                 isLoading: computed(() => storeQuery.value?.isLoading ?? false),
@@ -868,7 +924,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 stop,
                 ignoreUpdates,
                 cleanup,
-            }
+            }, execution, executeReturn, owned ? undefined : cleanup)
         }
 
         const SubmitProvider = markRaw(
@@ -904,7 +960,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                             emit('update:modelValue', value)
                         },
                     }) as Ref<TRequest | TRequest[] | undefined>
-                    const toExpose = submit(localItem, params, options.value)
+                    // not thenable: an async function returning the component
+                    // instance would resolve to the snapshot instead
+                    const { then: _then, ...toExpose } = submit(localItem, params, options.value)
                     expose(toExpose)
                     onBeforeUnmount(() => {
                         toExpose.cleanup()
@@ -980,10 +1038,18 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 // create new request
                 const repositoryRemoveOptions
                     = newRepositoryOptions ?? unref(repositoryOptions)
-                const { responsePromise, abort } = repository.remove(
+                const request = _createRequest(hashKey, {
+                    queryName,
+                    params: newParams,
+                    action: StoreRepositoryAction.remove,
+                }, () => repository.remove(
                     newParams,
                     repositoryRemoveOptions,
-                )
+                ))
+                if (!request) {
+                    return executeReturn()
+                }
+                const { responsePromise, abort } = request
                 _setHash(hashKey, {
                     queryName,
                     params: newParams,
@@ -1020,20 +1086,20 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }
                 return executeReturn()
             }
-            // execute immediately
-            if (immediate) {
-                execute()
-            }
+            // execute immediately: awaiting the action settles on this execution
+            const execution = immediate ? execute() : undefined
             // cleanup
             const cleanup = () => {
                 if (!keepAlive) {
                     _disableQuery(queryName)
                 }
             }
-            tryOnUnmounted(() => {
+            // cleaned up when the owning effect scope (a component too) is disposed,
+            // or, with no owner, once an awaited execution settles
+            const owned = tryOnScopeDispose(() => {
                 cleanup()
             })
-            return {
+            return toAwaitable({
                 query: storeQuery,
                 status: _queryStatus(storeQuery),
                 isLoading: computed(() => storeQuery.value?.isLoading ?? false),
@@ -1043,7 +1109,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 error: computed(() => storeQuery.value?.errors?.[0]),
                 execute,
                 cleanup,
-            }
+            }, execution, executeReturn, owned ? undefined : cleanup)
         }
 
         const RemoveProvider = markRaw(
@@ -1067,7 +1133,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 },
                 setup(props, { slots, expose }) {
                     const { params, options } = toRefs(props)
-                    const toExpose = remove(params, options.value)
+                    // not thenable: an async function returning the component
+                    // instance would resolve to the snapshot instead
+                    const { then: _then, ...toExpose } = remove(params, options.value)
                     expose(toExpose)
                     return () => {
                         const slot = slots.default?.({

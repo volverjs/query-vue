@@ -14,7 +14,7 @@ function defineStoreRepository<TRequest, TResponse = TRequest>(
 
 - `TRequest` is the shape you send; `TResponse` defaults to `TRequest` and is the shape you read
   back. Use two type params when request and response differ (e.g. a create DTO vs. the stored entity).
-- `name` is the Pinia store id. **Reusing the same `name` returns the same store instance** — great
+- `name` is the Pinia store id. **Reusing the same `name` returns the same store instance**: great
   for sharing data, a bug if accidental.
 
 ## Repository
@@ -75,7 +75,7 @@ export const useUsersStore = defineStoreRepository(usersRepository, 'users', {
 
 ### Choosing a `keyProperty`
 
-- Prefer the simple string form (`'id'`, `'uuid'`) — it's used both to read the key and (for the
+- Prefer the simple string form (`'id'`, `'uuid'`): it's used both to read the key and (for the
   object/string forms) to know which param name carries the key during `submit`/`remove`.
 - The bare function form (`item => item.uuid`) can read the key but has no name, so internally the
   param name falls back to `'id'`. If your key field isn't `id`, use the **named** object form
@@ -93,24 +93,24 @@ const store = useUsersStore()
 - `remove(params?, options?)`
 
 **Getters** (all return reactive `computed`s, so use them in templates / watchers):
-- `getItemByKey(key)` — one item from the normalized cache. `key` may be a ref.
+- `getItemByKey(key)`: one item from the normalized cache. `key` may be a ref.
   ```ts
   const selectedId = ref(1)
   const user = getItemByKey(selectedId) // recomputes when selectedId changes
   ```
-- `getItemsByKeys(keys)` — array of items for the given keys (missing keys are skipped). `keys`
+- `getItemsByKeys(keys)`: array of items for the given keys (missing keys are skipped). `keys`
   may be a ref to an array.
-- `getQueryByName(name)` — the tracked query object for a named query, or `undefined`.
+- `getQueryByName(name)`: the tracked query object for a named query, or `undefined`.
 
-**State** (Pinia state, already unwrapped to plain reactive `Map`s — no `.value`):
-- `items` — `Map<key, TResponse>`, the normalized cache.
-- `queries` — `Map<name, query>`.
-- `hashes` — `Map<hashKey, hash>`.
+**State** (Pinia state, already unwrapped to plain reactive `Map`s, no `.value`):
+- `items`: `Map<key, TResponse>`, the normalized cache.
+- `queries`: `Map<name, query>`.
+- `hashes`: `Map<hashKey, hash>`.
 
 **Maintenance:**
-- `resetQuery(name)` — clears a named query's results (and triggers a cleanup). Items only
+- `resetQuery(name)`: clears a named query's results (and triggers a cleanup). Items only
   referenced by that query are evicted.
-- `cleanUp()` — manually run the cleanup that otherwise fires on idle: drop disabled queries,
+- `cleanUp()`: manually run the cleanup that otherwise fires on idle: drop disabled queries,
   orphaned hashes, and items no longer referenced by any hash.
 
 **Provider components:** `ReadProvider`, `SubmitProvider`, `RemoveProvider` (see per-action references).
@@ -119,4 +119,4 @@ const store = useUsersStore()
 
 Pass `name` in an action's options to address a query later with `getQueryByName(name)` or
 `resetQuery(name)`. Without a name, each action call gets a fresh random name and is fully
-independent — so two un-named `submit()`s in the same tick won't clobber each other.
+independent, so two un-named `submit()`s in the same tick won't clobber each other.
