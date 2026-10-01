@@ -564,10 +564,15 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 if (!options?.group) {
                     releaseLeases(lease => lease.hashKey === hashKey)
                 }
+                // a request aborted but not settled yet cannot be joined, and
+                // the repository may still hand it back for the same key
+                const inFlight = storeHashes.value.get(hashKey)?.promise
+                const replacesAborted = !!inFlight && readRequests.get(inFlight)?.aborted === true
                 const storeHash = _getHash(hashKey, options)
                 // check if hash is already set
                 if (
                     storeHash
+                    && !replacesAborted
                     && (storeHash.status === StoreRepositoryStatus.loading
                         || (storeHash.status === StoreRepositoryStatus.success
                             && !forceExecute))
@@ -584,11 +589,12 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     const request = readRequests.get(storeHash.promise)
                     let own = [...leases].find(lease => lease.request === request)
                     if (!own && request) {
-                        // an older request on this hash (expired persistence)
+                        own = request.lease(hashKey)
+                        // an older request on this hash (expired persistence),
+                        // released once this query waits on the new one
                         if (!options?.group) {
                             releaseLeases()
                         }
-                        own = request.lease(hashKey)
                         leases.add(own)
                     }
                     // join the hash before awaiting, so the query shows the
@@ -625,19 +631,27 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }, () => repository.read(newParams, {
                     key: hashKey,
                     ...repositoryReadOptions,
+                    // without a key, a new request instead of the aborted one
+                    ...(replacesAborted ? { key: false } : {}),
                 }))
                 if (!request) {
                     return executeReturn()
                 }
                 const { responsePromise, abort } = request
-                const pendingRequest = new PendingRequest(abort)
-                readRequests.set(responsePromise, pendingRequest)
+                // a repository may hand back a request in flight for the same
+                // key: its leases are counted on the same pending request
+                let pendingRequest = readRequests.get(responsePromise)
+                if (!pendingRequest) {
+                    pendingRequest = new PendingRequest(abort)
+                    readRequests.set(responsePromise, pendingRequest)
+                }
+                const own = pendingRequest.lease(hashKey)
                 // an older request on this hash (expired persistence), released
-                // once the new one exists: a repository may share their fetch
+                // once this query waits on the new one: the two may share their
+                // fetch, or be the same request
                 if (!options?.group) {
                     releaseLeases()
                 }
-                const own = pendingRequest.lease(hashKey)
                 leases.add(own)
                 _setHash(hashKey, {
                     queryName,

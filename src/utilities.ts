@@ -136,6 +136,15 @@ export class PendingRequest {
         this.#abort = abort
     }
 
+    /** Whether the request was aborted, even if it has not settled yet. */
+    get aborted() {
+        return this.#aborted
+    }
+
+    /**
+     * Adds a query waiting on the request. The returned lease is released at
+     * most once, when that query no longer waits on it.
+     */
     lease(hashKey: string): RequestLease {
         this.#leases++
         const lease: RequestLease = {
@@ -148,9 +157,9 @@ export class PendingRequest {
                 }
                 lease.released = true
                 this.#leases--
-                if (this.#leases === 0 && !this.#aborted) {
+                if (this.#leases === 0 && !this.#aborted && this.#abort) {
                     this.#aborted = true
-                    this.#abort?.()
+                    this.#abort()
                 }
             },
         }

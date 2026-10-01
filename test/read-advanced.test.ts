@@ -255,6 +255,51 @@ describe('read advanced', () => {
         ])
     })
 
+    it('a repository that hands back the request in flight keeps it for the query asking again', async () => {
+        const { repository, respond } = manualRepository<Entity>()
+        // like a cache, the repository returns the same request for the same key
+        const send = repository.read
+        const inFlight = new Map<unknown, ReturnType<typeof send>>()
+        repository.read = (params, options) => {
+            if (!inFlight.has(options?.key)) {
+                inFlight.set(options?.key, send(params, options))
+            }
+            return inFlight.get(options?.key)!
+        }
+        const useStore = defineStoreRepository<Entity>(
+            repository,
+            'read-same-request-handed-back',
+        )
+        const { read } = useStore()
+        // persistence 0: every execution asks the repository again
+        const result = read({ id: '1' }, { persistence: 0 })
+        const again = result.execute({ id: '1' })
+        respond[0]({ ok: true, data: [{ id: '1' }] })
+        const { aborted, isSuccess } = await again
+        expect(aborted).toBe(false)
+        expect(isSuccess).toBe(true)
+    })
+
+    it('a read does not join a request aborted but not settled yet', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-join-aborted-not-settled',
+        )
+        const { read } = useStore()
+        const first = read({ id: '1' })
+        // nobody else waits: moving on aborts the request at once
+        first.execute({ id: '2' })
+        // the same params before the aborted request settles
+        const second = read({ id: '1' })
+        const { aborted, isSuccess, item } = await second
+        expect(aborted).toBe(false)
+        expect(isSuccess).toBe(true)
+        expect(item?.id).toBe('1')
+        await flushPromises()
+        expect(first.item.value?.id).toBe('2')
+    })
+
     it('a query that sends a new request on its hash releases the older one', async () => {
         fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
         const useStore = defineStoreRepository<Entity>(
