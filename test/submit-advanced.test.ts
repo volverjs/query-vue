@@ -1,7 +1,7 @@
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
 import { flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import { ref } from 'vue'
+import { effectScope, ref } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import SubmitProvider from './components/SubmitProvider.vue'
 import {
@@ -214,6 +214,25 @@ describe('submit advanced', () => {
         expect(second.item.value?.name).toBe('saved')
     })
 
+    it('the key of a payload does not leak into the params of the next execution', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request), name: 'saved' }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-params-not-mutated',
+        )
+        const { submit } = useStore()
+        const params = {}
+        const result = submit({ id: '1', name: 'a' }, params)
+        await result
+        const { item } = await result.execute({ id: '2', name: 'b' })
+        expect(item?.id).toBe('2')
+        expect(params).toEqual({})
+        const executeParams = {}
+        await result.execute({ id: '3', name: 'c' }, executeParams)
+        expect(executeParams).toEqual({})
+        expect(sentRequests().map(({ id }) => id)).toEqual(['1', '2', '3'])
+    })
+
     it('without an abort handle, an aborted response leaves the hash to the request still loading', async () => {
         // a repository whose requests have no `abort`
         const { repository, respond } = manualRepository<Entity>({ abortable: false })
@@ -230,6 +249,22 @@ describe('submit advanced', () => {
         expect(second.isLoading.value).toBe(true)
         respond[1]({ ok: true, data: [{ id: '1', name: 'saved' }] })
         expect((await second).isSuccess).toBe(true)
+    })
+
+    it('autoExecute does not run again because the payload key was written into the params', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request), name: 'saved' }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-params-ref-not-mutated',
+        )
+        const { submit } = useStore()
+        const params = ref({})
+        const scope = effectScope()
+        scope.run(() => submit({ id: '1', name: 'a' }, params, { autoExecute: true }))
+        await flushPromises()
+        expect(params.value).toEqual({})
+        expect(sentRequests().map(({ id }) => id)).toEqual(['1'])
+        scope.stop()
     })
 
     it('thenable assimilation runs one request and leaves no thenable in the store', async () => {

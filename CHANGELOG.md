@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - a `read()` that joins a request in flight with the same params now keeps it running when the query that sent it moves on, and gets its data: the request is aborted only when no query waits on it any more. A joining `read()` cleaned up meanwhile (for example by a component unmount) is no longer enabled again when the request ends, which kept its query in the store for ever. While it waits, the joining `read()` now shows the request as loading instead of `idle`, and if it moves to other params meanwhile it no longer switches back to the old ones when that request ends;
 - two `read()` calls sharing a `name` now follow the params of the last execution, instead of switching back to the params of a request that ends later;
 - with a `persistence` shorter than a request, a `read()` that sends the same request again now releases the older one, a `read()` that joins the newer one is no longer aborted by the query that sent it, and the hash no longer stays `loading` for ever when such requests overlap;
-- an aborted request no longer resets to `idle` the result of another query with the same params, also with a repository whose requests have no `abort`.
+- an aborted request no longer resets to `idle` the result of another query with the same params, also with a repository whose requests have no `abort`;
+- `submit()` wrote the key of its payload into the `params` passed to it: a later `execute()` with the payload of another item still updated the first one, and with reactive `params` and `autoExecute` the same update was sent twice. The params passed to `submit()` are no longer modified.
 
 ## [2.1.0] - 2026-09-30
 

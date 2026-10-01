@@ -820,7 +820,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 newRepositoryOptions?: Parameters<typeof repository.create>[2],
             ) => {
                 newData = newData ?? unref(payload)
-                newParams = newParams ?? (params ? { ...unref(params) } : {})
+                // a copy: the payload key below must not leak into the caller's
+                // params, the next execution would keep it
+                newParams = { ...(newParams ?? unref(params)) }
                 if (
                     !newData
                     || (Array.isArray(newData) && newData.length === 0)
