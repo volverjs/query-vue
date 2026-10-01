@@ -3,7 +3,13 @@ import { flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { defineStoreRepository } from '../src/index'
 import RemoveProvider from './components/RemoveProvider.vue'
-import { fetchMock, foreignThenables, mountWithPinia, setupStoreTest } from './utils'
+import {
+    fetchMock,
+    foreignThenables,
+    mountWithPinia,
+    sentRequests,
+    setupStoreTest,
+} from './utils'
 
 const httpClient = new HttpClient({
     prefixUrl: 'https://myapi.com/v1',
@@ -99,6 +105,31 @@ describe('remove advanced', () => {
         expect(isError).toBe(false)
         await flushPromises()
         expect(result.isSuccess.value).toBe(true)
+    })
+
+    it('a new execution aborts its own request, not the one of a removal with the same params', async () => {
+        fetchMock.mockResponse('', { status: 204 })
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'remove-abort-own-request',
+        )
+        const { remove } = useStore()
+        const first = remove({ id: '1' })
+        // same params: the same hash
+        const second = remove({ id: '1' })
+        first.execute({ id: '2' })
+        const [firstSnapshot, secondSnapshot] = await Promise.all([first, second])
+        expect(firstSnapshot.aborted).toBe(true)
+        expect(secondSnapshot.aborted).toBe(false)
+        expect(secondSnapshot.isSuccess).toBe(true)
+        await flushPromises()
+        expect(first.isSuccess.value).toBe(true)
+        expect(second.isSuccess.value).toBe(true)
+        expect(sentRequests()).toEqual([
+            { id: '1', aborted: true },
+            { id: '1', aborted: false },
+            { id: '2', aborted: false },
+        ])
     })
 
     it('thenable assimilation runs one request and leaves no thenable in the store', async () => {

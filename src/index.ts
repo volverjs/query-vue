@@ -11,6 +11,7 @@ import type {
     StoreRepositoryRemoveOptions,
     StoreRepositorySubmitOptions,
 } from './types'
+import type { RequestLease } from './utilities'
 import { Hash } from '@volverjs/data/hash'
 import { tryOnScopeDispose, useIdle } from '@vueuse/core'
 import { defineStore } from 'pinia'
@@ -31,6 +32,7 @@ import {
     getRandomValues,
     initAutoExecuteReadHandlers,
     initAutoExecuteSubmitHandlers,
+    PendingRequest,
     toAwaitable,
 } from './utilities'
 
@@ -90,6 +92,9 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
         const storeHashes: Ref<Map<string, StoreRepositoryHash>> = ref(
             new Map(),
         )
+        // reads in flight by response promise, so that a read joining one
+        // takes a lease on it
+        const readRequests = new WeakMap<Promise<unknown>, PendingRequest>()
 
         const _getHash = (
             hash?: string,
@@ -225,6 +230,22 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 storeQueries.value.set(queryName, {
                     enabled: true,
                     storeHashes: new Set([hashKey]),
+                })
+            }
+        }
+
+        /**
+         * Sets the hash of an aborted request back to idle, unless another
+         * request (of a query with the same params) replaced it meanwhile: the
+         * hash keeps the `promise` of its latest request until that one settles.
+         */
+        const _setAbortedHash = (
+            hashKey: string,
+            promise: Promise<unknown>,
+        ) => {
+            if (storeHashes.value.get(hashKey)?.promise === promise) {
+                _setHash(hashKey, {
+                    status: StoreRepositoryStatus.idle,
                 })
             }
         }
@@ -474,6 +495,17 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
             const reset = () => {
                 resetQuery(queryName)
             }
+            // the requests this query waits on, sent by it or joined: one
+            // without `group`, which keeps every hash it reads
+            const leases = new Set<RequestLease>()
+            const releaseLeases = (keep?: (lease: RequestLease) => boolean) => {
+                leases.forEach((lease) => {
+                    if (!keep?.(lease)) {
+                        lease.release()
+                        leases.delete(lease)
+                    }
+                })
+            }
             // execute function
             const execute = async (
                 newParamsOrForceExecute?: ParamMap | boolean,
@@ -527,6 +559,11 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     StoreRepositoryAction.read,
                     options,
                 )
+                // release the requests of the old params: each one is aborted
+                // unless another query waits on it
+                if (!options?.group) {
+                    releaseLeases(lease => lease.hashKey === hashKey)
+                }
                 const storeHash = _getHash(hashKey, options)
                 // check if hash is already set
                 if (
@@ -535,37 +572,47 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         || (storeHash.status === StoreRepositoryStatus.success
                             && !forceExecute))
                 ) {
-                    let aborted = false
-                    if (storeHash.promise) {
-                        try {
-                            const response = await storeHash.promise as { aborted?: boolean } | undefined
-                            aborted = response?.aborted === true
-                        }
-                        catch {
-                            // the execution that owns the request stores the error
-                        }
+                    if (!storeHash.promise) {
+                        _setHash(hashKey, {
+                            queryName,
+                            group: options?.group,
+                        })
+                        return executeReturn()
                     }
+                    // join the request in flight: with a lease of this query,
+                    // the query that sent it can no longer abort it alone
+                    const request = readRequests.get(storeHash.promise)
+                    let own = [...leases].find(lease => lease.request === request)
+                    if (!own && request) {
+                        // an older request on this hash (expired persistence)
+                        if (!options?.group) {
+                            releaseLeases()
+                        }
+                        own = request.lease(hashKey)
+                        leases.add(own)
+                    }
+                    // join the hash before awaiting, so the query shows the
+                    // request as loading; `_setHash` clears what is missing,
+                    // keep the request in flight
                     _setHash(hashKey, {
                         queryName,
                         group: options?.group,
-                        // `_setHash` clears a missing error, keep the owner's
-                        // one (read again: the hash may have been replaced)
-                        error: storeHashes.value.get(hashKey)?.error,
+                        abort: storeHash.abort,
+                        promise: storeHash.promise,
                     })
-                    return executeReturn(aborted)
-                }
-                // abort old request
-                if (!options?.group) {
-                    const oldHashKey = storeQuery.value?.storeHashes
-                        .values()
-                        ?.next()
-                        .value
-                    if (oldHashKey && oldHashKey !== hashKey) {
-                        const oldStoreHash = storeHashes.value.get(oldHashKey)
-                        if (oldStoreHash) {
-                            oldStoreHash.abort?.()
-                        }
+                    let aborted = false
+                    try {
+                        const response = await storeHash.promise as { aborted?: boolean } | undefined
+                        aborted = response?.aborted === true
                     }
+                    catch {
+                        // the execution that owns the request stores the error
+                    }
+                    if (own) {
+                        leases.delete(own)
+                    }
+                    // released: the query moved to other params meanwhile
+                    return executeReturn(aborted || own?.released === true)
                 }
                 // create new request
                 const repositoryReadOptions
@@ -583,6 +630,15 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     return executeReturn()
                 }
                 const { responsePromise, abort } = request
+                const pendingRequest = new PendingRequest(abort)
+                readRequests.set(responsePromise, pendingRequest)
+                // an older request on this hash (expired persistence), released
+                // once the new one exists: a repository may share their fetch
+                if (!options?.group) {
+                    releaseLeases()
+                }
+                const own = pendingRequest.lease(hashKey)
+                leases.add(own)
                 _setHash(hashKey, {
                     queryName,
                     params: newParams,
@@ -592,12 +648,13 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     abort,
                     promise: responsePromise,
                 })
+                // a released request still runs when another query joined it:
+                // its response fills the hash, and this execution resolves as
+                // aborted, like one whose request was actually aborted
                 try {
                     const { data, metadata, aborted } = await responsePromise
                     if (aborted) {
-                        _setHash(hashKey, {
-                            status: StoreRepositoryStatus.idle,
-                        })
+                        _setAbortedHash(hashKey, responsePromise)
                         return executeReturn(true)
                     }
                     if (!data) {
@@ -607,7 +664,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                                 `read: empty response is not allowed`,
                             ),
                         })
-                        return executeReturn()
+                        return executeReturn(own.released)
                     }
                     if (
                         data.length > 0
@@ -620,7 +677,7 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                                 `read: response must contain a ${keyPropertyName} property`,
                             ),
                         })
-                        return executeReturn()
+                        return executeReturn(own.released)
                     }
                     _setHash(hashKey, {
                         status: StoreRepositoryStatus.success,
@@ -634,7 +691,10 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         error: error as Error,
                     })
                 }
-                return executeReturn()
+                finally {
+                    leases.delete(own)
+                }
+                return executeReturn(own.released)
             }
             const { stop, ignoreUpdates, execution } = initAutoExecuteReadHandlers(
                 params,
@@ -750,6 +810,8 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 isError: storeQuery.value?.isError ?? false,
                 aborted,
             })
+            // the request this query sent last
+            let lease: RequestLease | undefined
 
             // execute function
             const execute = async (
@@ -795,16 +857,11 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 }
                 const hashKey = _hashParams(newParams, action)
 
-                // abort old request
-                const oldHashKey = storeQuery.value?.storeHashes
-                    .values()
-                    ?.next()
-                    .value
-                if (oldHashKey && oldHashKey !== hashKey) {
-                    const oldStoreHash = storeHashes.value.get(oldHashKey)
-                    if (oldStoreHash) {
-                        oldStoreHash.abort?.()
-                    }
+                // abort old request: the one this query sent, never the one
+                // of another query with the same params
+                if (lease && lease.hashKey !== hashKey) {
+                    lease.release()
+                    lease = undefined
                 }
                 // create new request
                 const repositorySubmitOptions
@@ -828,6 +885,8 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     return executeReturn()
                 }
                 const { responsePromise, abort } = request
+                const own = new PendingRequest(abort).lease(hashKey)
+                lease = own
 
                 _setHash(hashKey, {
                     queryName,
@@ -835,13 +894,12 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     status: StoreRepositoryStatus.loading,
                     action,
                     abort,
+                    promise: responsePromise,
                 })
                 try {
                     const { data, metadata, aborted } = await responsePromise
                     if (aborted) {
-                        _setHash(hashKey, {
-                            status: StoreRepositoryStatus.idle,
-                        })
+                        _setAbortedHash(hashKey, responsePromise)
                         return executeReturn(true)
                     }
                     if (!data) {
@@ -885,6 +943,11 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         status: StoreRepositoryStatus.error,
                         error: error as Error,
                     })
+                }
+                finally {
+                    if (lease === own) {
+                        lease = undefined
+                    }
                 }
                 return executeReturn()
             }
@@ -1012,6 +1075,8 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                 isError: storeQuery.value?.isError ?? false,
                 aborted,
             })
+            // the request this query sent last
+            let lease: RequestLease | undefined
 
             // execute function
             const execute = async (
@@ -1024,16 +1089,11 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     newParams,
                     StoreRepositoryAction.remove,
                 )
-                // abort old request
-                const oldHashKey = storeQuery.value?.storeHashes
-                    .values()
-                    ?.next()
-                    .value
-                if (oldHashKey && oldHashKey !== hashKey) {
-                    const oldStoreHash = storeHashes.value.get(oldHashKey)
-                    if (oldStoreHash) {
-                        oldStoreHash.abort?.()
-                    }
+                // abort old request: the one this query sent, never the one
+                // of another query with the same params
+                if (lease && lease.hashKey !== hashKey) {
+                    lease.release()
+                    lease = undefined
                 }
                 // create new request
                 const repositoryRemoveOptions
@@ -1050,19 +1110,20 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                     return executeReturn()
                 }
                 const { responsePromise, abort } = request
+                const own = new PendingRequest(abort).lease(hashKey)
+                lease = own
                 _setHash(hashKey, {
                     queryName,
                     params: newParams,
                     action: StoreRepositoryAction.remove,
                     status: StoreRepositoryStatus.loading,
                     abort,
+                    promise: responsePromise,
                 })
                 try {
                     const { aborted } = await responsePromise
                     if (aborted) {
-                        _setHash(hashKey, {
-                            status: StoreRepositoryStatus.idle,
-                        })
+                        _setAbortedHash(hashKey, responsePromise)
                         return executeReturn(true)
                     }
                     _setHash(hashKey, {
@@ -1083,6 +1144,11 @@ export function defineStoreRepository<TRequest, TResponse = TRequest>(repository
                         status: StoreRepositoryStatus.error,
                         error: error as Error,
                     })
+                }
+                finally {
+                    if (lease === own) {
+                        lease = undefined
+                    }
                 }
                 return executeReturn()
             }
