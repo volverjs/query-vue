@@ -113,6 +113,60 @@ class ActionAwaitable<TSnapshot> implements PromiseLike<TSnapshot> {
     }
 }
 
+export type RequestLease = {
+    readonly hashKey: string
+    readonly request: PendingRequest
+    released: boolean
+    release: () => void
+}
+
+/**
+ * A request in flight and the queries waiting on it, one lease each. A query
+ * that moves to other params releases its own lease, and the request is
+ * aborted once no lease is left: a `read()` with the same params joins the
+ * request of another query, so that request must keep running for it.
+ * Cleaning up a query keeps its lease, a clean up never aborts a request.
+ */
+export class PendingRequest {
+    #leases = 0
+    #aborted = false
+    readonly #abort: ((reason?: string) => void) | undefined
+
+    constructor(abort?: (reason?: string) => void) {
+        this.#abort = abort
+    }
+
+    /** Whether the request was aborted, even if it has not settled yet. */
+    get aborted() {
+        return this.#aborted
+    }
+
+    /**
+     * Adds a query waiting on the request. The returned lease is released at
+     * most once, when that query no longer waits on it.
+     */
+    lease(hashKey: string): RequestLease {
+        this.#leases++
+        const lease: RequestLease = {
+            hashKey,
+            request: this,
+            released: false,
+            release: () => {
+                if (lease.released) {
+                    return
+                }
+                lease.released = true
+                this.#leases--
+                if (this.#leases === 0 && !this.#aborted && this.#abort) {
+                    this.#aborted = true
+                    this.#abort()
+                }
+            },
+        }
+        return lease
+    }
+}
+
 export function initAutoExecuteReadHandlers<TResult>(
     params: Ref<ParamMap> | ParamMap,
     execute: (

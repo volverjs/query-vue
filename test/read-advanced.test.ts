@@ -4,7 +4,15 @@ import { describe, expect, it } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import ReadProvider from './components/ReadProvider.vue'
-import { fetchMock, foreignThenables, mountWithPinia, setupStoreTest } from './utils'
+import {
+    fetchMock,
+    foreignThenables,
+    manualRepository,
+    mountWithPinia,
+    requestedId,
+    sentRequests,
+    setupStoreTest,
+} from './utils'
 
 const httpClient = new HttpClient({
     prefixUrl: 'https://myapi.com/v1',
@@ -170,21 +178,242 @@ describe('read advanced', () => {
         expect(fetchMock.mock.calls).toHaveLength(1)
     })
 
-    it('awaiting a read that joins an aborted request resolves with aborted true', async () => {
-        fetchMock.mockResponse(JSON.stringify([{ id: '2' }]))
+    it('a read that joins a request keeps it running when the first query moves on', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
         const useStore = defineStoreRepository<Entity>(
             repositoryHttp,
-            'read-await-join-aborted',
+            'read-join-first-moves-on',
         )
         const { read } = useStore()
         const first = read({ id: '1' })
         // same params while the first request is in flight: it joins it
         const second = read({ id: '1' })
-        // the first query moves on and aborts the shared request
+        expect(second.isLoading.value).toBe(true)
+        // the first query moves on, the second one still waits on the request
         first.execute({ id: '2' })
-        const { aborted, isSuccess } = await second
-        expect(aborted).toBe(true)
-        expect(isSuccess).toBe(false)
+        expect(second.isLoading.value).toBe(true)
+        const [firstSnapshot, secondSnapshot] = await Promise.all([first, second])
+        expect(firstSnapshot.aborted).toBe(true)
+        expect(secondSnapshot.aborted).toBe(false)
+        expect(secondSnapshot.isSuccess).toBe(true)
+        expect(secondSnapshot.item?.id).toBe('1')
+        await flushPromises()
+        expect(second.isSuccess.value).toBe(true)
+        expect(second.item.value?.id).toBe('1')
+        expect(first.item.value?.id).toBe('2')
+        expect(sentRequests()).toEqual([
+            { id: '1', aborted: false },
+            { id: '2', aborted: false },
+        ])
+    })
+
+    it('a read that joined a request and moves on neither aborts it nor goes back to it', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-join-joiner-moves-on',
+        )
+        const { read } = useStore()
+        const first = read({ id: '1' })
+        const second = read({ id: '1' })
+        second.execute({ id: '3' })
+        const [firstSnapshot, secondSnapshot] = await Promise.all([first, second])
+        expect(firstSnapshot.aborted).toBe(false)
+        expect(firstSnapshot.item?.id).toBe('1')
+        // the join was replaced: it neither waits for nor shows the first hash
+        expect(secondSnapshot.aborted).toBe(true)
+        await flushPromises()
+        expect(first.item.value?.id).toBe('1')
+        expect(second.item.value?.id).toBe('3')
+        expect(sentRequests()).toEqual([
+            { id: '1', aborted: false },
+            { id: '3', aborted: false },
+        ])
+    })
+
+    it('a shared request is aborted once every query waiting on it moves on', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-join-all-move-on',
+        )
+        const store = useStore()
+        const first = store.read({ id: '1' })
+        const second = store.read({ id: '1' })
+        first.execute({ id: '2' })
+        second.execute({ id: '3' })
+        const [firstSnapshot, secondSnapshot] = await Promise.all([first, second])
+        expect(firstSnapshot.aborted).toBe(true)
+        expect(secondSnapshot.aborted).toBe(true)
+        await flushPromises()
+        expect(first.item.value?.id).toBe('2')
+        expect(second.item.value?.id).toBe('3')
+        expect(sentRequests()).toEqual([
+            { id: '1', aborted: true },
+            { id: '2', aborted: false },
+            { id: '3', aborted: false },
+        ])
+    })
+
+    it('a repository that hands back the request in flight keeps it for the query asking again', async () => {
+        const { repository, respond } = manualRepository<Entity>()
+        // like a cache, the repository returns the same request for the same key
+        const send = repository.read
+        const inFlight = new Map<unknown, ReturnType<typeof send>>()
+        repository.read = (params, options) => {
+            if (!inFlight.has(options?.key)) {
+                inFlight.set(options?.key, send(params, options))
+            }
+            return inFlight.get(options?.key)!
+        }
+        const useStore = defineStoreRepository<Entity>(
+            repository,
+            'read-same-request-handed-back',
+        )
+        const { read } = useStore()
+        // persistence 0: every execution asks the repository again
+        const result = read({ id: '1' }, { persistence: 0 })
+        const again = result.execute({ id: '1' })
+        respond[0]({ ok: true, data: [{ id: '1' }] })
+        const { aborted, isSuccess } = await again
+        expect(aborted).toBe(false)
+        expect(isSuccess).toBe(true)
+    })
+
+    it('a read does not join a request aborted but not settled yet', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-join-aborted-not-settled',
+        )
+        const { read } = useStore()
+        const first = read({ id: '1' })
+        // nobody else waits: moving on aborts the request at once
+        first.execute({ id: '2' })
+        // the same params before the aborted request settles
+        const second = read({ id: '1' })
+        const { aborted, isSuccess, item } = await second
+        expect(aborted).toBe(false)
+        expect(isSuccess).toBe(true)
+        expect(item?.id).toBe('1')
+        await flushPromises()
+        expect(first.item.value?.id).toBe('2')
+    })
+
+    it('a query that sends a new request on its hash releases the older one', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-same-hash-new-request',
+        )
+        const { read } = useStore()
+        // with persistence 0 every execution sends a request: the repository
+        // shares the one in flight for the same params
+        const result = read({ id: '1' }, { persistence: 0 })
+        result.execute({ id: '1' })
+        result.execute({ id: '2' })
+        await flushPromises()
+        expect(result.item.value?.id).toBe('2')
+        expect(sentRequests()).toEqual([
+            { id: '1', aborted: true },
+            { id: '2', aborted: false },
+        ])
+    })
+
+    it('a query that joins a newer request on its hash keeps it when the sender moves on', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-join-newer-request',
+        )
+        const { read } = useStore()
+        const first = read({ id: '1' })
+        // persistence 0: the second query sends its own request on the same hash
+        const second = read({ id: '1' }, { persistence: 0 })
+        // the first query executes again and joins the newer request
+        const again = first.execute({ id: '1' })
+        second.execute({ id: '3' })
+        const { aborted, isSuccess, item } = await again
+        expect(aborted).toBe(false)
+        expect(isSuccess).toBe(true)
+        expect(item?.id).toBe('1')
+    })
+
+    it('two reads sharing a name follow the last params', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-shared-name',
+        )
+        const { read, getQueryByName } = useStore()
+        const first = read({ id: '1' }, { name: 'q' })
+        read({ id: '1' }, { name: 'q' })
+        first.execute({ id: '2' })
+        await flushPromises()
+        expect(getQueryByName('q').value?.data.map(item => item.id)).toEqual(['2'])
+    })
+
+    it('an awaited read keeps the shared request of a later execution', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-awaited-keeps-later-request',
+        )
+        const { read } = useStore()
+        // no owner: awaiting releases the query once the first execution ends
+        const first = read({ id: '1' })
+        const later = first.execute({ id: '2' })
+        const other = read({ id: '2' })
+        await first
+        // the other query moves on, the later execution still waits
+        other.execute({ id: '3' })
+        const { aborted, isSuccess, item } = await later
+        expect(aborted).toBe(false)
+        expect(isSuccess).toBe(true)
+        expect(item?.id).toBe('2')
+    })
+
+    it('a joining read cleaned up while waiting stays disabled when the request ends', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request) }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'read-join-cleaned-up-stays-disabled',
+        )
+        const { read, getQueryByName } = useStore()
+        const first = read({ id: '1' })
+        const scope = effectScope()
+        scope.run(() => read({ id: '1' }, { name: 'joined' }))
+        scope.stop()
+        first.execute({ id: '2' })
+        await flushPromises()
+        // a clean up never aborts a request: the joined one still runs
+        expect(sentRequests()).toEqual([
+            { id: '1', aborted: false },
+            { id: '2', aborted: false },
+        ])
+        expect(getQueryByName('joined').value?.enabled).toBe(false)
+    })
+
+    it('a joining read leaves a newer request on its hash abortable', async () => {
+        const { repository, respond } = manualRepository<Entity>()
+        const useStore = defineStoreRepository<Entity>(
+            repository,
+            'read-join-keeps-newer-request',
+        )
+        const { read } = useStore()
+        const first = read({ id: '1' })
+        // joins the request of the first query
+        const second = read({ id: '1' })
+        // persistence 0: sends a newer request on the same hash
+        const third = read({ id: '1' }, { persistence: 0 })
+        // the first request ends as aborted, as a network failure can
+        respond[0]({ ok: false, aborted: true })
+        await flushPromises()
+        // the newer request is aborted when its query moves on
+        third.execute({ id: '3' })
+        await flushPromises()
+        expect(first.isLoading.value).toBe(false)
+        expect(second.isLoading.value).toBe(false)
     })
 
     it('thenable assimilation runs one request and leaves no thenable in the store', async () => {

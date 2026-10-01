@@ -1,3 +1,4 @@
+import type { Repository } from '@volverjs/data'
 import type { Component } from 'vue'
 import { createTestingPinia } from '@pinia/testing'
 import { mount } from '@vue/test-utils'
@@ -7,6 +8,49 @@ import { toRaw } from 'vue'
 
 /** Shared fetch mock for the test file that imports it. */
 export const fetchMock = createFetchMock(vi)
+
+/** The last path segment of a request, the `:id` of an `':id?'` template. */
+export function requestedId(request: Request) {
+    return new URL(request.url).pathname.split('/').pop()
+}
+
+type ManualResponse<T> = { ok: boolean, aborted?: boolean, data?: T[] }
+
+/**
+ * A repository whose requests settle only when the test calls
+ * `respond[i](response)`, in the order they were sent. With `abortable`, a
+ * request has an `abort()` that settles it as aborted.
+ */
+export function manualRepository<T>({ abortable = true } = {}) {
+    const respond: ((response: ManualResponse<T>) => void)[] = []
+    const request = () => {
+        let settle!: (response: ManualResponse<T>) => void
+        const responsePromise = new Promise<ManualResponse<T>>((resolve) => {
+            settle = resolve
+        })
+        respond.push(settle)
+        return {
+            responsePromise,
+            abort: abortable ? () => settle({ ok: false, aborted: true }) : undefined,
+        }
+    }
+    const repository = {
+        read: request,
+        create: request,
+        update: request,
+        remove: request,
+    } as unknown as Repository<T>
+    return { repository, respond }
+}
+
+/** The requests sent to the fetch mock so far, an aborted one included. */
+export function sentRequests(): { id?: string, aborted: boolean }[] {
+    // the HTTP client calls `fetch` with a `Request`
+    return fetchMock.mock.calls.map(([request]: [Request]) => ({
+        id: requestedId(request),
+        aborted: request.signal.aborted,
+    }))
+}
 
 /** Mounts a component with a fresh testing pinia instance. */
 export function mountWithPinia(component: Component) {

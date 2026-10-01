@@ -1,10 +1,18 @@
 import { HttpClient, RepositoryHttp } from '@volverjs/data'
 import { flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import { ref } from 'vue'
+import { effectScope, ref } from 'vue'
 import { defineStoreRepository } from '../src/index'
 import SubmitProvider from './components/SubmitProvider.vue'
-import { fetchMock, foreignThenables, mountWithPinia, setupStoreTest } from './utils'
+import {
+    fetchMock,
+    foreignThenables,
+    manualRepository,
+    mountWithPinia,
+    requestedId,
+    sentRequests,
+    setupStoreTest,
+} from './utils'
 
 const httpClient = new HttpClient({
     prefixUrl: 'https://myapi.com/v1',
@@ -155,6 +163,108 @@ describe('submit advanced', () => {
         expect(isError).toBe(false)
         await flushPromises()
         expect(result.item.value?.id).toBe('2')
+    })
+
+    it('a new execution aborts its own request, not the one of a submit with the same params', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request), name: 'saved' }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-abort-own-request',
+        )
+        const { submit } = useStore()
+        const first = submit({ id: '1', name: 'a' })
+        // same action and params: the same hash
+        const second = submit({ id: '1', name: 'a' })
+        first.execute({ id: '2', name: 'b' }, { id: '2' })
+        const [firstSnapshot, secondSnapshot] = await Promise.all([first, second])
+        expect(firstSnapshot.aborted).toBe(true)
+        expect(secondSnapshot.aborted).toBe(false)
+        expect(secondSnapshot.isSuccess).toBe(true)
+        await flushPromises()
+        expect(second.isSuccess.value).toBe(true)
+        expect(second.item.value?.id).toBe('1')
+        expect(first.item.value?.id).toBe('2')
+        expect(sentRequests()).toEqual([
+            { id: '1', aborted: true },
+            { id: '1', aborted: false },
+            { id: '2', aborted: false },
+        ])
+    })
+
+    it('an aborted request leaves the hash to the submit with the same params that succeeded', async () => {
+        let respondToFirst!: () => void
+        fetchMock.mockResponseOnce(() => new Promise((resolve) => {
+            respondToFirst = () => resolve(JSON.stringify([{ id: '1', name: 'first' }]))
+        }))
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request), name: 'saved' }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-abort-after-shared-success',
+        )
+        const { submit } = useStore()
+        const first = submit({ id: '1', name: 'a' })
+        const second = submit({ id: '1', name: 'a' })
+        expect((await second).isSuccess).toBe(true)
+        // the first request is still in flight on the hash the second one filled
+        first.execute({ id: '2', name: 'b' }, { id: '2' })
+        respondToFirst()
+        expect((await first).aborted).toBe(true)
+        await flushPromises()
+        expect(second.isSuccess.value).toBe(true)
+        expect(second.item.value?.name).toBe('saved')
+    })
+
+    it('the key of a payload does not leak into the params of the next execution', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request), name: 'saved' }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-params-not-mutated',
+        )
+        const { submit } = useStore()
+        const params = {}
+        const result = submit({ id: '1', name: 'a' }, params)
+        await result
+        const { item } = await result.execute({ id: '2', name: 'b' })
+        expect(item?.id).toBe('2')
+        expect(params).toEqual({})
+        const executeParams = {}
+        await result.execute({ id: '3', name: 'c' }, executeParams)
+        expect(executeParams).toEqual({})
+        expect(sentRequests().map(({ id }) => id)).toEqual(['1', '2', '3'])
+    })
+
+    it('without an abort handle, an aborted response leaves the hash to the request still loading', async () => {
+        // a repository whose requests have no `abort`
+        const { repository, respond } = manualRepository<Entity>({ abortable: false })
+        const useStore = defineStoreRepository<Entity>(
+            repository,
+            'submit-no-abort-handle',
+        )
+        const { submit } = useStore()
+        const first = submit({ id: '1', name: 'a' })
+        // same action and params: the same hash
+        const second = submit({ id: '1', name: 'a' })
+        respond[0]({ ok: false, aborted: true })
+        expect((await first).aborted).toBe(true)
+        expect(second.isLoading.value).toBe(true)
+        respond[1]({ ok: true, data: [{ id: '1', name: 'saved' }] })
+        expect((await second).isSuccess).toBe(true)
+    })
+
+    it('autoExecute does not run again because the payload key was written into the params', async () => {
+        fetchMock.mockResponse((request: Request) => JSON.stringify([{ id: requestedId(request), name: 'saved' }]))
+        const useStore = defineStoreRepository<Entity>(
+            repositoryHttp,
+            'submit-params-ref-not-mutated',
+        )
+        const { submit } = useStore()
+        const params = ref({})
+        const scope = effectScope()
+        scope.run(() => submit({ id: '1', name: 'a' }, params, { autoExecute: true }))
+        await flushPromises()
+        expect(params.value).toEqual({})
+        expect(sentRequests().map(({ id }) => id)).toEqual(['1'])
+        scope.stop()
     })
 
     it('thenable assimilation runs one request and leaves no thenable in the store', async () => {
